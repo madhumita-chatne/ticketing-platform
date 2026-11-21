@@ -412,6 +412,31 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #20: Fix Ticket Modal Collision with Navbar on dev-shivani
+- **Date & Time**: `2026-11-21 14:52:29 +05:30`
+- **User Prompt**:
+  > *"opening the ticket in teh user screen makes it collide with the navbar"*
+- **Intent**: Fix visual layering collision on the `dev-shivani` branch where opening a ticket's detail/conversation modal caused the sticky white navbar to float on top of and collide with the modal header.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Z-Index Layering Fix**:
+    - Increased `.modal-overlay` to `z-index: 2000 !important;` (cleanly above `.website-navbar` at `z-index: 100`).
+    - Configured backdrop with `background-color: rgba(15, 23, 42, 0.65);` and `backdrop-filter: blur(4px);`.
+  - **Viewport Clearance & Scrolling Geometry**:
+    - Set `.modal-overlay` padding to `2.5rem 1rem;` with `overflow-y: auto;`.
+    - Set `.modal-content` and `.modal-large` to `max-height: calc(100vh - 5rem);` with `margin: auto;` and elevated drop shadow.
+    - Set `.conversation-modal-body` to `max-height: calc(100vh - 16rem);` with internal scrolling.
+    - Set `.modal-header` to `position: sticky; top: 0; background: white; z-index: 10; flex-shrink: 0;` ensuring headers and close controls never get pushed outside the visible screen.
+  - **Restored Custom Dropdown Chevrons**:
+    - Re-applied modern Lucide chevron-down vector styling (`appearance: none`) across `select`, `.filter-select`, `.form-group select`, `.agent-select-dropdown`, and `.card-agent-select`.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) in 1.01s with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown
