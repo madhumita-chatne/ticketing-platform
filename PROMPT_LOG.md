@@ -569,6 +569,21 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #25: Codebase Audit: CustomerPortal Component Usage Verification
+- **Date & Time**: `2026-11-21 15:40:00 +05:30`
+- **User Prompt**:
+  > *"is CustomerPortal component being used?"*
+- **Intent**: Audit the frontend codebase to determine if `CustomerPortal.jsx` is currently imported or used anywhere.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`client/src/components/CustomerPortal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/CustomerPortal.jsx), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Documentation: [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Grepped the entire repository and confirmed [`CustomerPortal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/CustomerPortal.jsx) is not imported in [`App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx) or any other component.
+  - Verified that [`UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx) is the active component handling the customer/public experience on `/`.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown
