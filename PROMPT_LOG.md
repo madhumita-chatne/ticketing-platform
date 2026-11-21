@@ -599,6 +599,20 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #27: Architecture Inquiry: Status Change Lifecycle Comment Mechanism
+- **Date & Time**: `2026-11-21 16:12:00 +05:30`
+- **User Prompt**:
+  > *"the status of the ticket changed - how is a comment added for it?"*
+- **Intent**: Explain the end-to-end mechanism of how an audit comment is generated and stored in SQLite when a ticket's status changes.
+- **Key Modules Explained**:
+  - Backend Endpoint: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js) (`PATCH /api/tickets/:id`)
+  - Database Table: `comments` in [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite)
+  - Frontend Triggers: [`App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx) (`handleStatusChange`), [`AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx) (`handleUpdateStatus`), [`TicketModal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown
