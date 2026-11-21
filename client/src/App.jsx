@@ -228,7 +228,7 @@ export default function App() {
   // 1. ADMIN PATH: /admin (Protected by Basic Auth)
   if (currentPath === '/admin') {
     return (
-      <AuthGate role="admin" onNavigate={navigateTo} apiRoot={API_ROOT}>
+      <AuthGate role="admin" onNavigate={navigateTo} apiRoot={API_ROOT} agents={agents}>
         <div className="app-container">
           <AdminDashboard
             tickets={tickets}

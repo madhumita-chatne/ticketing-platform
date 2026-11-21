@@ -245,14 +245,23 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
             Homepage
           </button>
           {role === 'admin' && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => onNavigate && onNavigate('/agent')}
-              title="Go to Agent Workspace"
+            <select
+              className="filter-select"
+              defaultValue=""
+              aria-label="Select an agent for Agent Workspace"
+              title="Open Agent Workspace"
+              onChange={(e) => {
+                const agentId = e.target.value;
+                if (!agentId) return;
+                sessionStorage.setItem('ticketflow_logged_agent_id', agentId);
+                if (onNavigate) onNavigate('/agent');
+              }}
             >
-              Agent Workspace
-            </button>
+              <option value="" disabled>Agent Workspace</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>{agent.name}</option>
+              ))}
+            </select>
           )}
           <button
             type="button"
