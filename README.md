@@ -1,134 +1,124 @@
-# 🎫 TicketFlow - Ticket Tracking System
+# 🎫 TicketFlow - Multi-Portal Ticket & Complaint Tracking System
 
-A modern, full-stack boilerplate for a ticket tracking system built with **React** (Vite), **Node.js** (Express), and an embedded **SQLite** database.
+A full-stack support and complaint tracking system built with **React** (Vite), **Node.js** (Express), and an embedded **SQLite** database. It features **3 dedicated frontend applications** connected to the same backend:
 
----
-
-## 💡 About SQLite: Do You Need to Install Anything?
-
-**NO installation is needed for SQLite!** 
-
-Unlike MySQL, PostgreSQL, or MongoDB, **SQLite is an embedded, serverless database engine**.
-- In this project, the Node.js backend uses **`better-sqlite3`**, which embeds the entire SQLite database engine directly inside the Node.js application process.
-- When you run the server, it automatically creates a `database.sqlite` file inside the `server/` folder and pre-seeds it with initial sample tickets.
-- **You do NOT need to install any SQLite software, CLI, or database server on your machine.**
-
-### 🌐 Prefer an Online / Cloud SQLite Database?
-If you want an online SQLite database accessible from the cloud with zero local storage:
-1. **[Turso (libSQL)](https://turso.tech/)**: Provides free cloud-hosted SQLite databases with instant URLs and tokens.
-   - You can replace `better-sqlite3` with `@libsql/client`:
-     ```js
-     import { createClient } from "@libsql/client";
-     export const db = createClient({
-       url: process.env.TURSO_DATABASE_URL,
-       authToken: process.env.TURSO_AUTH_TOKEN
-     });
-     ```
-2. **[Cloudflare D1](https://developers.cloudflare.com/d1/)**: Serverless SQLite on Cloudflare's edge network.
+1. 👤 **Customer Portal**: For end-users to raise complaints (subject & description), track status, and view agent responses in real time.
+2. 🛡️ **Admin Dashboard**: Full Kanban & Table dashboard with real-time stats and controls to assign tickets to any of the 5 agents.
+3. 🎧 **Agent Screen**: Workspace for support agents to inspect assigned tickets, update resolution status, and post responses that immediately appear on the customer portal.
 
 ---
 
-## 📁 Project Structure
+## 👥 The 5 Support Agents
+The SQLite database comes with 5 pre-seeded support agents:
+1. **Sarah Chen** — *Technical Support Specialist* (Technical Support)
+2. **Alex Kumar** — *Billing & Accounts Lead* (Billing & Accounts)
+3. **David Miller** — *Product Escalations Engineer* (Product Issues)
+4. **Elena Rostova** — *Customer Success Manager* (VIP & Escalations)
+5. **Maya Lin** — *General Support Specialist* (General Inquiries)
 
-All files have been created directly in your current workspace directory (`/Users/madhumita/ticketing-system`):
+---
 
-```text
-ticketing-system/
-├── package.json              # Root package to run client & server concurrently
-├── .gitignore                # Git ignore rules for node_modules, sqlite files, .env
-├── README.md                 # Project documentation & setup instructions
-│
-├── server/                   # Backend (Node.js + Express + SQLite)
-│   ├── package.json          # Express, better-sqlite3, cors, dotenv
-│   ├── .env                  # Port & database configuration
-│   ├── .env.example          # Sample environment variables
-│   └── src/
-│       ├── index.js          # Express entry point & middleware
-│       ├── db.js             # SQLite init, schema tables & auto-seeding
-│       └── routes/
-│           └── tickets.js    # CRUD routes & statistics endpoints
-│
-└── client/                   # Frontend (React + Vite)
-    ├── package.json          # React, Vite, Lucide icons
-    ├── vite.config.js        # Vite config with /api proxy to backend
-    ├── index.html            # Main HTML shell
-    └── src/
-        ├── index.css         # Modern styling & design system
-        ├── main.jsx          # React DOM entry point
-        ├── App.jsx           # Main Dashboard (Kanban + Table views)
-        └── components/
-            ├── Header.jsx    # Navbar & action buttons
-            ├── StatCard.jsx  # Metric cards (Total, Open, In Progress, Resolved)
-            ├── FilterBar.jsx # Search, Category/Priority/Status filters, View toggle
-            ├── TicketCard.jsx# Ticket item card with badges and actions
-            └── TicketModal.jsx# Create & Edit Ticket dialog form
+## 🗄️ Database Schema (`database.sqlite`)
+
+### 1. `agents` Table
+```sql
+CREATE TABLE agents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT DEFAULT 'Support Specialist',
+    department TEXT DEFAULT 'Customer Support',
+    avatar_color TEXT DEFAULT '#4f46e5',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 2. `tickets` Table
+```sql
+CREATE TABLE tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT CHECK(status IN ('open', 'in_progress', 'resolved', 'closed')) DEFAULT 'open',
+    priority TEXT CHECK(priority IN ('low', 'medium', 'high', 'urgent')) DEFAULT 'medium',
+    category TEXT DEFAULT 'General',
+    assignee TEXT DEFAULT 'Unassigned',
+    agent_id INTEGER,
+    customer_name TEXT DEFAULT 'Customer',
+    customer_email TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL
+);
+```
+
+### 3. `comments` Table
+```sql
+CREATE TABLE comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    author TEXT NOT NULL,
+    author_role TEXT CHECK(author_role IN ('agent', 'customer', 'admin')) DEFAULT 'agent',
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+);
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Running the Applications
 
-### Step 1: Install Dependencies
+### Frontend Application
+Open [http://localhost:5173](http://localhost:5173) in your browser. Use the top navigation bar or direct hash links to access each portal:
 
-From the root `ticketing-system/` directory:
-
-```bash
-# Install all dependencies for both server and client at once:
-npm run install:all
-```
-
-*(Or install individually: `cd server && npm install`, then `cd ../client && npm install`)*
-
----
-
-### Step 2: Run the Development Servers
-
-You can run both backend and frontend together with a single command from the root folder:
-
-```bash
-npm run dev
-```
-
-Or run them in separate terminal windows:
-
-#### Terminal 1 (Backend - Node.js Server):
-```bash
-cd server
-npm run dev
-```
-> Server runs on: **`http://localhost:5001`**  
-> Creates and connects to: **`server/database.sqlite`**
-
-#### Terminal 2 (Frontend - React Vite App):
-```bash
-cd client
-npm run dev
-```
-> Frontend runs on: **`http://localhost:5173`**  
-> Automatically proxies API requests to `http://localhost:5001/api`
-
----
-
-## 📡 API Endpoints (Backend)
-
-| Method | Endpoint | Description |
+| Portal | Direct Link | Purpose |
 |---|---|---|
-| `GET` | `/api/tickets` | List tickets (supports query params: `status`, `priority`, `category`, `search`) |
-| `GET` | `/api/tickets/stats` | Aggregated counts for dashboard cards |
-| `GET` | `/api/tickets/:id` | Get details of a single ticket with comments |
-| `POST` | `/api/tickets` | Create a new ticket |
-| `PATCH`| `/api/tickets/:id` | Update ticket status, priority, title, assignee, etc. |
-| `DELETE`| `/api/tickets/:id` | Delete a ticket |
-| `POST` | `/api/tickets/:id/comments` | Add a comment to a ticket |
-| `GET` | `/api/health` | Health check endpoint |
+| **Customer Portal** | [http://localhost:5173/#customer](http://localhost:5173/#customer) | Raise complaints, track tickets, view agent comments |
+| **Admin Dashboard** | [http://localhost:5173/#admin](http://localhost:5173/#admin) | Kanban & Table view, assign tickets to 5 agents |
+| **Agent Screen** | [http://localhost:5173/#agent](http://localhost:5173/#agent) | Switch between agents, resolve tickets, add comments |
+
+### Backend API
+- **Base URL**: `http://localhost:5001`
+- **Health Check**: `http://localhost:5001/api/health`
+- **Tickets API**: `http://localhost:5001/api/tickets`
+- **Agents API**: `http://localhost:5001/api/agents`
 
 ---
 
-## ✨ Features Included
+## 🔄 End-to-End Workflow
 
-1. **Kanban & Table Views**: Switch seamlessly between a visual Kanban board and a compact table view.
-2. **Status & Priority Badges**: Visual indicators for `urgent`, `high`, `medium`, `low` and `open`, `in_progress`, `resolved`, `closed`.
-3. **Filter & Search**: Real-time filtering by status, priority, category, or title/assignee search.
-4. **Interactive Modal**: Create new tickets or update existing ones with title, category, priority, status, and assignee.
-5. **Auto-seeding**: Generates 5 initial realistic sample tickets on first run so you can immediately see data.
-6. **Zero External DB Setup**: `better-sqlite3` manages the SQLite file inside the application.
+1. **Customer raises a complaint**:
+   - Customer opens the **Customer Portal** and clicks **"Raise a Complaint"**.
+   - Fills in **Subject**, **Description / Concern**, Name, Email, Category, and Priority.
+   - The ticket is created with status `open` and assigned to `Unassigned`.
+
+2. **Admin reviews & assigns ticket**:
+   - Admin opens the **Admin Dashboard** ([http://localhost:5173/#admin](http://localhost:5173/#admin)).
+   - The new complaint appears immediately in the **Open** column.
+   - Admin assigns the complaint to one of the 5 agents (e.g. *Alex Kumar*) directly using the agent dropdown on the card or in the table view.
+
+3. **Agent works on ticket & adds comments**:
+   - Agent opens the **Agent Screen** ([http://localhost:5173/#agent](http://localhost:5173/#agent)).
+   - Selects their profile (e.g. *Alex Kumar*).
+   - Opens the assigned ticket and writes a response / update in the comment box.
+   - Changes status to **In Progress** or **Resolved**.
+
+4. **Customer sees the response**:
+   - On the **Customer Portal** ([http://localhost:5173/#customer](http://localhost:5173/#customer)), the customer clicks their complaint.
+   - The agent's comment is displayed prominently in real-time under **Responses & Updates** with the agent's name and role badge.
+   - The customer can post follow-up replies directly.
+
+---
+
+## 🛠️ CLI Utilities
+
+```bash
+# Clear the database (removes all tickets & comments)
+npm run db:clear
+
+# Inspect the database with SQLite CLI
+sqlite3 server/database.sqlite "SELECT * FROM agents;"
+sqlite3 server/database.sqlite "SELECT * FROM tickets;"
+sqlite3 server/database.sqlite "SELECT * FROM comments;"
+```

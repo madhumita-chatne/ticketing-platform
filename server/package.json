@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "db:clear": "node src/clear-db.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

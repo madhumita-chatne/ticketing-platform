@@ -10,6 +10,9 @@ export default function FilterBar({
   setPriorityFilter,
   categoryFilter,
   setCategoryFilter,
+  agentFilter,
+  setAgentFilter,
+  agents = [],
   viewMode,
   setViewMode
 }) {
@@ -19,13 +22,29 @@ export default function FilterBar({
         <Search size={16} />
         <input
           type="text"
-          placeholder="Search tickets by title, description or assignee..."
+          placeholder="Search by title, concern, customer or assignee..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
       <div className="filter-group">
+        {/* Filter by Agent */}
+        <select
+          className="filter-select"
+          value={agentFilter || 'all'}
+          onChange={(e) => setAgentFilter(e.target.value)}
+          aria-label="Filter by Assigned Agent"
+        >
+          <option value="all">All Agents</option>
+          <option value="unassigned">Unassigned Only</option>
+          {agents.map((agent) => (
+            <option key={agent.id} value={agent.id}>
+              {agent.name} ({agent.department})
+            </option>
+          ))}
+        </select>
+
         <select
           className="filter-select"
           value={statusFilter}
@@ -59,9 +78,12 @@ export default function FilterBar({
           aria-label="Filter by Category"
         >
           <option value="all">All Categories</option>
+          <option value="Complaint">Complaint</option>
           <option value="General">General</option>
           <option value="Frontend">Frontend</option>
           <option value="Backend">Backend</option>
+          <option value="Billing">Billing</option>
+          <option value="Technical">Technical</option>
           <option value="DevOps">DevOps</option>
           <option value="Security">Security</option>
           <option value="Documentation">Documentation</option>

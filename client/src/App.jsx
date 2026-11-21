@@ -1,57 +1,92 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Header from './components/Header.jsx';
-import StatCard from './components/StatCard.jsx';
-import FilterBar from './components/FilterBar.jsx';
-import TicketCard from './components/TicketCard.jsx';
-import TicketModal from './components/TicketModal.jsx';
-import { Layers, Clock, CheckCircle, CheckCheck, Inbox, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import PortalNav from './components/PortalNav.jsx';
+import CustomerPortal from './components/CustomerPortal.jsx';
+import AdminDashboard from './components/AdminDashboard.jsx';
+import AgentScreen from './components/AgentScreen.jsx';
 
-const API_BASE = 'http://localhost:5001/api/tickets';
+const API_ROOT = typeof window !== 'undefined' && window.location.port === '5173'
+  ? 'http://localhost:5001/api'
+  : '/api';
 
-const KANBAN_COLUMNS = [
-  { key: 'open', label: 'Open', color: '#1d4ed8' },
-  { key: 'in_progress', label: 'In Progress', color: '#b45309' },
-  { key: 'resolved', label: 'Resolved', color: '#047857' },
-  { key: 'closed', label: 'Closed', color: '#475569' }
-];
+const API_TICKETS = `${API_ROOT}/tickets`;
+const API_AGENTS = `${API_ROOT}/agents`;
 
 export default function App() {
+  // Read hash from URL to determine initial portal: '#customer', '#admin', or '#agent'
+  const getInitialPortal = () => {
+    const hash = window.location.hash.replace('#', '').toLowerCase();
+    if (['customer', 'admin', 'agent'].includes(hash)) {
+      return hash;
+    }
+    return 'customer'; // Default to customer-facing portal
+  };
+
+  const [activePortal, setActivePortal] = useState(getInitialPortal);
+  const [agents, setAgents] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
     byStatus: { open: 0, in_progress: 0, resolved: 0, closed: 0 },
     byPriority: { low: 0, medium: 0, high: 0, urgent: 0 }
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Filters & View
+  // Filters for Admin Dashboard
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'list'
+  const [agentFilter, setAgentFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('kanban');
 
-  // Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTicket, setEditingTicket] = useState(null);
+  // Handle portal tab selection & hash sync
+  const handleSelectPortal = (portalId) => {
+    setActivePortal(portalId);
+    window.location.hash = portalId;
+  };
 
-  // Fetch tickets and stats from backend
-  const fetchData = async () => {
+  // Listen to hash changes (back/forward browser buttons or direct URL change)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (['customer', 'admin', 'agent'].includes(hash)) {
+        setActivePortal(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Fetch agents roster
+  const fetchAgents = async () => {
+    try {
+      const res = await fetch(API_AGENTS);
+      const data = await res.json();
+      if (data.success) {
+        setAgents(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load agents:', err);
+    }
+  };
+
+  // Fetch tickets & stats
+  const fetchTicketsAndStats = async () => {
     try {
       setLoading(true);
       setErrorMessage('');
 
-      // Build query string for filters
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
+      if (agentFilter !== 'all') params.append('agent_id', agentFilter);
       if (search.trim()) params.append('search', search.trim());
 
       const [ticketsRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}?${params.toString()}`),
-        fetch(`${API_BASE}/stats`)
+        fetch(`${API_TICKETS}?${params.toString()}`),
+        fetch(`${API_TICKETS}/stats`)
       ]);
 
       if (!ticketsRes.ok || !statsRes.ok) {
@@ -69,292 +104,157 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-      setErrorMessage('Could not connect to backend API. Ensure the Node.js server is running on http://localhost:5001.');
+      setErrorMessage('Could not connect to backend API. Ensure the server is running on http://localhost:5001.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial load
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  // Filter effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData();
-    }, 200);
+      fetchTicketsAndStats();
+    }, 150);
     return () => clearTimeout(timer);
-  }, [search, statusFilter, priorityFilter, categoryFilter]);
+  }, [search, statusFilter, priorityFilter, categoryFilter, agentFilter]);
 
-  // Create or Update Ticket
+  // Create or update ticket
   const handleSaveTicket = async (ticketData, id) => {
     const isEdit = Boolean(id);
-    const url = isEdit ? `${API_BASE}/${id}` : API_BASE;
+    const url = isEdit ? `${API_TICKETS}/${id}` : API_TICKETS;
     const method = isEdit ? 'PATCH' : 'POST';
 
-    const response = await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ticketData)
     });
 
-    const resJson = await response.json();
+    const resJson = await res.json();
     if (!resJson.success) {
       throw new Error(resJson.message || 'Operation failed');
     }
 
-    await fetchData();
+    await Promise.all([fetchTicketsAndStats(), fetchAgents()]);
   };
 
-  // Quick Status Change
+  // Quick status change
   const handleStatusChange = async (ticketId, nextStatus) => {
     try {
-      const response = await fetch(`${API_BASE}/${ticketId}`, {
+      const res = await fetch(`${API_TICKETS}/${ticketId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: nextStatus })
       });
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
-        fetchData();
+        fetchTicketsAndStats();
       }
     } catch (err) {
       console.error('Failed to change status:', err);
     }
   };
 
-  // Delete Ticket
+  // Quick assign ticket to agent
+  const handleAssignAgent = async (ticketId, agentId) => {
+    try {
+      const res = await fetch(`${API_TICKETS}/${ticketId}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: agentId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await Promise.all([fetchTicketsAndStats(), fetchAgents()]);
+      }
+    } catch (err) {
+      console.error('Failed to assign agent:', err);
+    }
+  };
+
+  // Delete ticket
   const handleDeleteTicket = async (ticketId) => {
     if (!confirm(`Are you sure you want to delete ticket #${ticketId}?`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/${ticketId}`, {
+      const res = await fetch(`${API_TICKETS}/${ticketId}`, {
         method: 'DELETE'
       });
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
-        fetchData();
+        await Promise.all([fetchTicketsAndStats(), fetchAgents()]);
       }
     } catch (err) {
       console.error('Failed to delete ticket:', err);
     }
   };
 
-  // Group tickets by status for Kanban
-  const kanbanGrouped = useMemo(() => {
-    const groups = {
-      open: [],
-      in_progress: [],
-      resolved: [],
-      closed: []
-    };
-    tickets.forEach((t) => {
-      if (groups[t.status]) {
-        groups[t.status].push(t);
-      }
-    });
-    return groups;
-  }, [tickets]);
-
   return (
     <div className="app-container">
-      <Header
-        onNewTicket={() => {
-          setEditingTicket(null);
-          setIsModalOpen(true);
-        }}
-        onRefresh={fetchData}
-        loading={loading}
+      {/* Top Multi-App / Portal Switcher Bar */}
+      <PortalNav
+        activePortal={activePortal}
+        onSelectPortal={handleSelectPortal}
+        ticketCounts={{ total: stats.total }}
       />
 
-      {errorMessage && (
-        <div className="banner banner-info" style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertTriangle size={18} />
-            <span>{errorMessage}</span>
-          </div>
-        </div>
+      {/* Render Selected Application View */}
+      {activePortal === 'customer' && (
+        <CustomerPortal
+          apiBase={API_TICKETS}
+          onTicketCreated={() => {
+            fetchTicketsAndStats();
+            fetchAgents();
+          }}
+        />
       )}
 
-      {/* Stats Summary Cards */}
-      <div className="stats-grid">
-        <StatCard
-          title="Total Tickets"
-          count={stats.total}
-          icon={Layers}
-          color="#4f46e5"
-          bgColor="#eef2ff"
-          active={statusFilter === 'all'}
-          onClick={() => setStatusFilter('all')}
+      {activePortal === 'admin' && (
+        <AdminDashboard
+          tickets={tickets}
+          stats={stats}
+          agents={agents}
+          loading={loading}
+          errorMessage={errorMessage}
+          search={search}
+          setSearch={setSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          priorityFilter={priorityFilter}
+          setPriorityFilter={setPriorityFilter}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          agentFilter={agentFilter}
+          setAgentFilter={setAgentFilter}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          onRefresh={() => {
+            fetchTicketsAndStats();
+            fetchAgents();
+          }}
+          onSaveTicket={handleSaveTicket}
+          onStatusChange={handleStatusChange}
+          onDeleteTicket={handleDeleteTicket}
+          onAssignAgent={handleAssignAgent}
+          apiBase={API_TICKETS}
         />
-        <StatCard
-          title="Open"
-          count={stats.byStatus.open}
-          icon={Inbox}
-          color="#1d4ed8"
-          bgColor="#eff6ff"
-          active={statusFilter === 'open'}
-          onClick={() => setStatusFilter(statusFilter === 'open' ? 'all' : 'open')}
-        />
-        <StatCard
-          title="In Progress"
-          count={stats.byStatus.in_progress}
-          icon={Clock}
-          color="#b45309"
-          bgColor="#fffbeb"
-          active={statusFilter === 'in_progress'}
-          onClick={() => setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
-        />
-        <StatCard
-          title="Resolved"
-          count={stats.byStatus.resolved}
-          icon={CheckCircle}
-          color="#047857"
-          bgColor="#ecfdf5"
-          active={statusFilter === 'resolved'}
-          onClick={() => setStatusFilter(statusFilter === 'resolved' ? 'all' : 'resolved')}
-        />
-      </div>
-
-      {/* Filter and View Toolbar */}
-      <FilterBar
-        search={search}
-        setSearch={setSearch}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        priorityFilter={priorityFilter}
-        setPriorityFilter={setPriorityFilter}
-        categoryFilter={categoryFilter}
-        setCategoryFilter={setCategoryFilter}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-      />
-
-      {/* Main Content Area */}
-      {viewMode === 'kanban' ? (
-        <div className="kanban-board">
-          {KANBAN_COLUMNS.map((col) => {
-            const columnTickets = kanbanGrouped[col.key] || [];
-            return (
-              <div key={col.key} className="kanban-col">
-                <div className="kanban-col-header">
-                  <span style={{ color: col.color }}>{col.label}</span>
-                  <span className="col-count">{columnTickets.length}</span>
-                </div>
-
-                {columnTickets.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8', fontSize: '0.8rem' }}>
-                    No tickets in {col.label.toLowerCase()}
-                  </div>
-                ) : (
-                  columnTickets.map((ticket) => (
-                    <TicketCard
-                      key={ticket.id}
-                      ticket={ticket}
-                      onEdit={(t) => {
-                        setEditingTicket(t);
-                        setIsModalOpen(true);
-                      }}
-                      onDelete={handleDeleteTicket}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ))
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="table-container">
-          <table className="ticket-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Assignee</th>
-                <th>Created</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tickets.length === 0 ? (
-                <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-                    No tickets match the selected filters.
-                  </td>
-                </tr>
-              ) : (
-                tickets.map((t) => (
-                  <tr key={t.id}>
-                    <td style={{ fontWeight: 600, color: '#64748b' }}>#{t.id}</td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{t.title}</div>
-                      {t.description && (
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: '350px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {t.description}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <span className="ticket-category">{t.category}</span>
-                    </td>
-                    <td>
-                      <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
-                    </td>
-                    <td>
-                      <select
-                        className={`filter-select badge badge-status-${t.status}`}
-                        value={t.status}
-                        onChange={(e) => handleStatusChange(t.id, e.target.value)}
-                        style={{ cursor: 'pointer', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
-                      >
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </td>
-                    <td>{t.assignee}</td>
-                    <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                      {new Date(t.created_at).toLocaleDateString()}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        className="btn-icon"
-                        style={{ marginRight: '0.3rem' }}
-                        onClick={() => {
-                          setEditingTicket(t);
-                          setIsModalOpen(true);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn-icon"
-                        style={{ color: '#ef4444' }}
-                        onClick={() => handleDeleteTicket(t.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       )}
 
-      {/* Ticket Create / Edit Modal */}
-      <TicketModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingTicket(null);
-        }}
-        onSave={handleSaveTicket}
-        onDelete={handleDeleteTicket}
-        ticket={editingTicket}
-      />
+      {activePortal === 'agent' && (
+        <AgentScreen
+          apiBase={API_TICKETS}
+          agents={agents}
+          onTicketUpdated={() => {
+            fetchTicketsAndStats();
+            fetchAgents();
+          }}
+        />
+      )}
     </div>
   );
 }

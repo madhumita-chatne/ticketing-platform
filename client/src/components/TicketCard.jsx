@@ -1,7 +1,7 @@
 import React from 'react';
-import { Clock, User, AlertCircle, CheckCircle2, ChevronRight, Edit3, Trash2 } from 'lucide-react';
+import { Clock, User, Headphones, MessageSquare, Edit3, Trash2 } from 'lucide-react';
 
-export default function TicketCard({ ticket, onEdit, onDelete, onStatusChange }) {
+export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onStatusChange, onAssignAgent }) {
   const getInitials = (name) => {
     if (!name || name === 'Unassigned') return '?';
     return name
@@ -12,11 +12,7 @@ export default function TicketCard({ ticket, onEdit, onDelete, onStatusChange })
       .toUpperCase();
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const hasAgent = ticket.agent_id && ticket.assignee !== 'Unassigned';
 
   return (
     <div className="ticket-card" onClick={() => onEdit(ticket)}>
@@ -25,10 +21,17 @@ export default function TicketCard({ ticket, onEdit, onDelete, onStatusChange })
         <span className="ticket-category">{ticket.category}</span>
       </div>
 
-      <h4 className="ticket-title">{ticket.title}</h4>
+      <h4 className="ticket-title">{ticket.title || ticket.subject}</h4>
 
       {ticket.description && (
         <p className="ticket-desc">{ticket.description}</p>
+      )}
+
+      {ticket.customer_name && ticket.customer_name !== 'Customer' && (
+        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          <User size={12} />
+          <span>Customer: <strong>{ticket.customer_name}</strong></span>
+        </div>
       )}
 
       <div className="card-badges">
@@ -38,12 +41,38 @@ export default function TicketCard({ ticket, onEdit, onDelete, onStatusChange })
         <span className={`badge badge-status-${ticket.status}`}>
           {ticket.status.replace('_', ' ')}
         </span>
+        {(ticket.comments_count || 0) > 0 && (
+          <span className="badge-comments-count" title={`${ticket.comments_count} comment(s)`}>
+            <MessageSquare size={11} />
+            <span>{ticket.comments_count}</span>
+          </span>
+        )}
       </div>
 
       <div className="card-footer" onClick={(e) => e.stopPropagation()}>
-        <div className="assignee" title={`Assignee: ${ticket.assignee}`}>
-          <div className="avatar">{getInitials(ticket.assignee)}</div>
-          <span>{ticket.assignee}</span>
+        {/* Quick Assign Agent Dropdown */}
+        <div className="assign-control-group">
+          <div className="avatar" style={{ backgroundColor: ticket.agent_avatar_color || '#94a3b8' }}>
+            {getInitials(ticket.assignee)}
+          </div>
+          <select
+            className="card-agent-select"
+            value={ticket.agent_id || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (onAssignAgent) {
+                onAssignAgent(ticket.id, val ? Number(val) : null);
+              }
+            }}
+            title="Assign ticket to an agent"
+          >
+            <option value="">Unassigned</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
