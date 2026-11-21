@@ -1,5 +1,6 @@
 import express from 'express';
 import { db } from '../db.js';
+import { calculateDueAt } from '../sla.js';
 
 const router = express.Router();
 
@@ -312,8 +313,8 @@ router.post('/', (req, res) => {
     }
 
     const stmt = db.prepare(`
-      INSERT INTO tickets (title, description, status, priority, category, assignee, agent_id, customer_name, customer_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tickets (title, description, status, priority, category, assignee, agent_id, customer_name, customer_email, due_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -325,7 +326,8 @@ router.post('/', (req, res) => {
       targetAssignee,
       targetAgentId,
       customer_name.trim() || 'Customer',
-      customer_email.trim()
+      customer_email.trim(),
+      calculateDueAt(new Date(), priority)
     );
 
     const ticketId = result.lastInsertRowid;
@@ -502,6 +504,8 @@ router.patch('/:id', (req, res) => {
       }
       updates.push('priority = ?');
       params.push(priority);
+      updates.push('due_at = ?');
+      params.push(calculateDueAt(ticket.created_at, priority));
     }
 
     if (category !== undefined) {

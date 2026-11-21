@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, Shield, Headphones, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield, Headphones, ArrowLeft } from 'lucide-react';
 
 export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot = '/api', agents = [] }) {
   const storageKey = `ticketflow_auth_${role}`;
@@ -229,10 +229,6 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
         <div className="session-left">
           <span className="session-role-badge" style={{ backgroundColor: roleColor }}>
             {roleTitle} Active
-          </span>
-          <span className="session-auth-badge">
-            <CheckCircle2 size={13} color="#10b981" />
-            <span>Authenticated</span>
           </span>
         </div>
         <div className="session-right">

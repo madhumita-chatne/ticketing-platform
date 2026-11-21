@@ -12,13 +12,16 @@ import {
   RefreshCw,
   X,
   ShieldCheck,
-  Headphones
+  Headphones,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 
 export default function CustomerPortal({ apiBase, onTicketCreated }) {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('cards');
   
   // Modal states
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
@@ -32,8 +35,7 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
     description: '',
     customer_name: '',
     customer_email: '',
-    category: 'Complaint',
-    priority: 'medium'
+    category: 'Complaint'
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(null);
@@ -119,7 +121,6 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
         customer_name: formData.customer_name.trim() || 'Valued Customer',
         customer_email: formData.customer_email.trim(),
         category: formData.category,
-        priority: formData.priority,
         status: 'open',
         assignee: 'Unassigned'
       };
@@ -141,8 +142,7 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
         description: '',
         customer_name: '',
         customer_email: '',
-        category: 'Complaint',
-        priority: 'medium'
+        category: 'Complaint'
       });
       await fetchComplaints();
       if (onTicketCreated) onTicketCreated();
@@ -240,14 +240,36 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
             <h2 className="section-title">Track Your Support Requests & Complaints</h2>
             <p className="section-desc">Click on any complaint to view agent responses and live resolution progress.</p>
           </div>
-          <div className="search-box" style={{ width: '320px' }}>
-            <Search size={16} />
-            <input
-              type="text"
-              placeholder="Search by ID, subject or concern..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <div className="search-box" style={{ width: '320px' }}>
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search by ID, subject or concern..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="view-mode-toggle">
+              <button
+                type="button"
+                className={`btn-view-toggle ${viewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title="Switch to List View"
+              >
+                <List size={15} />
+                <span>List</span>
+              </button>
+              <button
+                type="button"
+                className={`btn-view-toggle ${viewMode === 'cards' ? 'active' : ''}`}
+                onClick={() => setViewMode('cards')}
+                title="Switch to Card View"
+              >
+                <LayoutGrid size={15} />
+                <span>Cards</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -275,6 +297,87 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
                 <span>Raise a Complaint</span>
               </button>
             )}
+          </div>
+        ) : viewMode === 'list' ? (
+          <div className="table-container">
+            <table className="ticket-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '90px' }}>ID</th>
+                  <th>Concern & Details</th>
+                  <th style={{ width: '120px' }}>Priority</th>
+                  <th style={{ width: '130px' }}>Status</th>
+                  <th style={{ width: '180px' }}>Assigned Agent</th>
+                  <th style={{ width: '140px' }}>Logged At</th>
+                  <th style={{ width: '95px' }}>Replies</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredComplaints.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => openTicketDetails(item)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td>
+                      <span className="complaint-id">#{item.id}</span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+                        {item.subject || item.title}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '420px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.description || 'No additional details provided.'}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge badge-priority-${item.priority}`}>{item.priority}</span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-status-${item.status}`}>
+                        {item.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      {item.agent_name && item.agent_name !== 'Unassigned' ? (
+                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.agent_name}</span>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: '#b45309' }}>Waiting for assignment</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Clock size={12} />
+                        <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="complaint-comments-badge" style={{ fontSize: '0.78rem' }}>
+                        <MessageSquare size={12} />
+                        <span>{item.comments_count || 0}</span>
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        style={{ background: '#0284c7', borderColor: '#0284c7', padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTicketDetails(item);
+                        }}
+                      >
+                        Track
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="complaints-grid">
@@ -455,19 +558,6 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
                         <option value="Technical">Technical Issue</option>
                         <option value="Product">Product Feedback</option>
                         <option value="General">General Inquiry</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Priority</label>
-                      <select
-                        value={formData.priority}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      >
-                        <option value="low">Low (General question)</option>
-                        <option value="medium">Medium (Standard concern)</option>
-                        <option value="high">High (Impacting my work)</option>
-                        <option value="urgent">Urgent (Service blocker)</option>
                       </select>
                     </div>
                   </div>

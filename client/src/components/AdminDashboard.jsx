@@ -4,6 +4,7 @@ import StatCard from './StatCard.jsx';
 import FilterBar from './FilterBar.jsx';
 import TicketCard from './TicketCard.jsx';
 import TicketModal from './TicketModal.jsx';
+import { formatTicketDueDate } from '../utils.js';
 import { Layers, Clock, CheckCircle, CheckCheck, Inbox, AlertTriangle, UserCheck, Shield } from 'lucide-react';
 
 const KANBAN_COLUMNS = [
@@ -214,6 +215,7 @@ export default function AdminDashboard({
                 <th>Customer</th>
                 <th>Category</th>
                 <th>Priority</th>
+                <th>Due Date</th>
                 <th>Status</th>
                 <th>Assigned Agent</th>
                 <th>Created</th>
@@ -223,13 +225,13 @@ export default function AdminDashboard({
             <tbody>
               {tickets.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
                     No tickets match the selected filters.
                   </td>
                 </tr>
               ) : (
                 tickets.map((t) => (
-                  <tr key={t.id}>
+                  <tr key={t.id} className={t.priority === 'urgent' ? 'urgent-ticket-row' : ''}>
                     <td style={{ fontWeight: 600, color: '#64748b' }}>#{t.id}</td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{t.title || t.subject}</div>
@@ -250,6 +252,9 @@ export default function AdminDashboard({
                     </td>
                     <td>
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                    </td>
+                    <td className={t.priority === 'urgent' ? 'urgent-ticket-due' : ''} style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      {formatTicketDueDate(t)}
                     </td>
                     <td>
                       <select

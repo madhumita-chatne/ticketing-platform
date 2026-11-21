@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, User, Headphones, MessageSquare, Edit3, Trash2 } from 'lucide-react';
+import { formatTicketDueDate } from '../utils.js';
 
 export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onStatusChange, onAssignAgent }) {
   const getInitials = (name) => {
@@ -15,7 +16,10 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
   const hasAgent = ticket.agent_id && ticket.assignee !== 'Unassigned';
 
   return (
-    <div className="ticket-card" onClick={() => onEdit(ticket)}>
+    <div
+      className={`ticket-card ${ticket.priority === 'urgent' ? 'urgent-ticket-card' : ''}`}
+      onClick={() => onEdit(ticket)}
+    >
       <div className="card-top">
         <span className="ticket-id">#{ticket.id}</span>
         <span className="ticket-category">{ticket.category}</span>
@@ -47,6 +51,11 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
             <span>{ticket.comments_count}</span>
           </span>
         )}
+      </div>
+
+      <div className={`ticket-due-date ${ticket.priority === 'urgent' ? 'urgent-ticket-due' : ''}`}>
+        <Clock size={12} />
+        <span>Due: {formatTicketDueDate(ticket)}</span>
       </div>
 
       <div className="card-footer" onClick={(e) => e.stopPropagation()}>
