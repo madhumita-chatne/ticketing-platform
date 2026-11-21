@@ -675,6 +675,16 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .form-group {
@@ -737,6 +747,7 @@ select:focus {
   background-color: #f8fafc;
   border-top: 1px solid var(--border-color);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-shrink: 0;
 }
 
 .modal-footer-right {
