@@ -272,6 +272,123 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #14: In-Page Tickets Section & Modal Clearance Fix
+- **Date & Time**: `2026-11-21 14:19:10 +05:30`
+- **User Prompt**:
+  > *"opening the ticket in teh user screen makes it collide with the navbar"*
+- **Intent**: Fix visual layering and layout collision where opening a ticket's detail/conversation modal caused its header to collide with and be obscured behind the sticky top navbar.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Z-Index Layering Fix**:
+    - Increased `.modal-overlay` from `z-index: 50` to `z-index: 1000`, placing the backdrop and modal cleanly above the sticky navbar (`z-index: 100`).
+  - **Viewport Clearance & Scrolling Geometry**:
+    - Increased `.modal-overlay` padding from `1rem` to `2.5rem 1rem` to ensure consistent breathing room from the top and bottom of the viewport.
+    - Updated `.modal-content` to use `max-height: calc(100vh - 5rem)` and `margin: auto` with enhanced drop shadow.
+    - Updated `.conversation-modal-body` to `max-height: calc(100vh - 16rem)` with internal scrolling, preventing modal overflow.
+  - **Verification**:
+    - Verified clean Vite compilation (`npm --prefix client run build`) in 949ms.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #15: Universal Dropdown Chevron-Down Icon Across All Screens
+- **Date & Time**: `2026-11-21 14:27:00 +05:30`
+- **User Prompt**:
+  > *"fix the dropdown icon for everywhere on the dropdown buttons"*
+- **Intent**: Fix dropdown arrows across all `<select>` dropdown controls and select buttons across the entire application so they display consistent, modern, styled Lucide chevron-down indicators instead of default unstyled browser OS controls.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Universal Select Styling in `index.css`**:
+    - Applied `appearance: none; -webkit-appearance: none; -moz-appearance: none;` across all `select` elements.
+    - Integrated inline SVG Lucide chevron-down icon (`stroke='#64748b'`) with smooth transition to indigo (`stroke='#4f46e5'`) on `:focus`.
+    - Configured background position `right 0.75rem center`, size `14px 14px`, and `padding-right: 2.25rem !important` to eliminate text collision with the chevron.
+  - **Standardized Component Classes**:
+    - Styled `.filter-select`, `.form-group select`, and `.agent-select-dropdown` with consistent chevron-down backgrounds.
+    - Styled compact variants (`.card-agent-select`, `select.badge`, and `.filter-select.badge`) with scaled `11px 11px` chevron-down icons, `right 0.45rem center` position, and `1.6rem` padding.
+  - **Prefix & Toolbar Symmetry in `UserWebsite.jsx`**:
+    - Added `<Layers size={14} />` icon wrapper to the Priority dropdown filter in `#my-tickets-section`, matching the `<Filter size={14} />` icon on the Status filter.
+  - **Inline Padding Refinements**:
+    - Cleaned inline padding in `AdminDashboard.jsx` (table status badge select and agent select) and `AuthGate.jsx` (agent picker) to maintain right clearance for the custom dropdown chevrons.
+- **Verification**:
+  - Built client successfully with `npm --prefix client run build` in 948ms.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #16: Backend Server Restoration & Database Corruption Fix
+- **Date & Time**: `2026-11-21 14:31:40 +05:30`
+- **User Prompt**:
+  > *"Could not connect to backend API. Ensure the server is running on http://localhost:5001"*
+- **Intent**: Resolve backend server failure where the frontend could not reach `http://localhost:5001`.
+- **Key Modules Affected**:
+  - Backend: [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js), [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite)
+  - Process Management: Task `task-27` (killed), Task `task-868` (spawned)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Root Cause**:
+  - The SQLite database file [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite) and its WAL journal experienced btree corruption (`SQLITE_CORRUPT: database disk image is malformed (11)`), causing `node --watch src/index.js` to crash on startup during table row count initialization.
+- **Actions Taken**:
+  - Terminated the crashed backend task (`task-27`).
+  - Confirmed via `.dump` and `.recover` that no customer tickets were lost.
+  - Archived corrupted database artifacts into `server/corrupt_backup/`.
+  - Reinitialized fresh database instance via `initDatabase()`, automatically creating tables and seeding the 5 support agents with verified integrity (`PRAGMA integrity_check -> ok`).
+  - Launched fresh backend daemon (`npm --prefix server run dev`, task `task-868`).
+  - Confirmed backend server is active on `http://localhost:5001`.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #17: Reverted SQLite Files Resolution & WAL Checkpointing
+- **Date & Time**: `2026-11-21 14:35:21 +05:30`
+- **User Prompt**:
+  > *"i reverted some files of sqlite. fix it"*
+- **Intent**: Fix SQLite database and backend server after git revert / branch checkout operations touched SQLite files.
+- **Key Modules Affected**:
+  - Database: [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite), [`server/database.sqlite-wal`](file:///Users/madhumita/ticketing-system/server/database.sqlite-wal), [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js)
+  - Configuration: [`.gitignore`](file:///Users/madhumita/ticketing-system/.gitignore)
+  - Process Management: Task `task-868` (killed), Task `task-981` (spawned)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Root Cause**:
+  - `server/database.sqlite-wal` and `server/database.sqlite-shm` were previously tracked in git whereas `server/database.sqlite` was gitignored (`*.sqlite`).
+  - Checking out or reverting git commits replaced the active WAL journal with an out-of-sync revision, causing SQLite write-ahead log divergence.
+- **Actions Taken**:
+  - Executed `PRAGMA wal_checkpoint(TRUNCATE);` to safely flush all transactions directly into [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite) and truncate the WAL journal to 0 bytes.
+  - Executed `initDatabase()` migration check to ensure all columns (including `status` on `agents`) exist and are populated with `online`.
+  - Updated [`.gitignore`](file:///Users/madhumita/ticketing-system/.gitignore) to `*.sqlite*` and `*.db*` to protect WAL and SHM journal files from future git tracking and branch collisions.
+  - Restarted backend daemon process (`npm --prefix server run dev`, task `task-981`).
+  - Verified backend operation with database queries returning 5 agents and 10 tickets.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #18: Populate SQLite Database with 5 Agents and 12 Realistic Tickets
+- **Date & Time**: `2026-11-21 14:41:18 +05:30`
+- **User Prompt**:
+  > *"fill the sqlite db with 5 agents, 12 tickets already in the db"*
+- **Intent**: Seed the embedded SQLite database with the 5 canonical support agents and 12 comprehensive, realistic customer concern tickets with discussion threads and balanced workloads.
+- **Key Modules Affected**:
+  - Backend: [`server/src/seed.js`](file:///Users/madhumita/ticketing-system/server/src/seed.js), [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js)
+  - Scripts: [`server/package.json`](file:///Users/madhumita/ticketing-system/server/package.json), [`package.json`](file:///Users/madhumita/ticketing-system/package.json)
+  - Database: [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Created Standalone Seeder ([server/src/seed.js](file:///Users/madhumita/ticketing-system/server/src/seed.js))**:
+    - Created `seedFullDatabase()` which sets up the 5 canonical agents (Sarah Chen, Alex Kumar, David Miller, Elena Rostova, Maya Lin) and 12 realistic tickets covering all categories (`Billing`, `Technical`, `Complaint`, `Product`, `General`), statuses (`open`, `in_progress`, `resolved`, `closed`), and priorities (`urgent`, `high`, `medium`, `low`).
+    - Seeded realistic back-and-forth customer replies and agent support responses across 27 discussion comments.
+    - Balanced workloads across all 5 agents (Sarah: 2 active, Elena: 2 active, Alex: 1 active, David: 1 active, Maya: 1 active).
+  - **Added `npm run db:seed` Scripts**:
+    - Added `"db:seed": "node src/seed.js"` to `server/package.json` and `"db:seed": "npm --prefix server run db:seed"` to root `package.json`.
+    - Updated `server/src/db.js` so that `seedDatabase()` delegates to `seedFullDatabase()`.
+  - **Execution & Verification**:
+    - Executed `npm run db:seed`.
+    - Verified database row counts (`PRAGMA integrity_check -> ok`, 5 agents, 12 tickets, 27 comments).
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown

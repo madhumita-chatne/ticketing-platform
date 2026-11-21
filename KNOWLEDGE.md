@@ -356,8 +356,17 @@ cd server && npm run dev
 cd client && npm run dev
 ```
 
-### Database Maintenance
+### Database Maintenance & Diagnostics
 ```bash
+# Check SQLite database integrity
+sqlite3 server/database.sqlite "PRAGMA integrity_check;"
+
+# Flush WAL journal directly into main database and truncate WAL file
+sqlite3 server/database.sqlite "PRAGMA wal_checkpoint(TRUNCATE);"
+
+# Re-seed database with 5 agents, 12 tickets, and full discussion threads
+npm run db:seed
+
 # Truncate all tickets and comments (keeps 5 agents intact)
 npm run db:clear
 

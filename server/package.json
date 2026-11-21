@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "db:clear": "node src/clear-db.js"
+    "db:clear": "node src/clear-db.js",
+    "db:seed": "node src/seed.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

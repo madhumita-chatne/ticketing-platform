@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { seedFullDatabase } from './seed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,60 +121,5 @@ export function seedAgents() {
 }
 
 export function seedDatabase() {
-  const insertTicket = db.prepare(`
-    INSERT INTO tickets (title, description, status, priority, category, assignee)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-
-  const sampleTickets = [
-    [
-      'Fix navigation bar layout on mobile screens',
-      'The hamburger menu is overlapping with the logo on screens smaller than 375px wide.',
-      'open',
-      'high',
-      'Frontend',
-      'Sarah Chen'
-    ],
-    [
-      'Optimize SQLite queries for dashboard stats',
-      'Add database indexing on status and priority columns to improve aggregation query speeds.',
-      'in_progress',
-      'medium',
-      'Backend',
-      'Alex Kumar'
-    ],
-    [
-      'Add user authentication & session management',
-      'Implement JWT-based authentication for team member logins and ticket role permissions.',
-      'open',
-      'urgent',
-      'Security',
-      'David Miller'
-    ],
-    [
-      'Resolve SSL certificate renewal warning',
-      'Automated cert-manager job failed to renew wildcard domain certificate.',
-      'resolved',
-      'high',
-      'DevOps',
-      'Elena Rostova'
-    ],
-    [
-      'Update API documentation for v1.2 release',
-      'Document the new ticket filtering parameters and comment endpoints in OpenAPI specs.',
-      'closed',
-      'low',
-      'Documentation',
-      'Maya Lin'
-    ]
-  ];
-
-  const insertMany = db.transaction((tickets) => {
-    for (const ticket of tickets) {
-      insertTicket.run(...ticket);
-    }
-  });
-
-  insertMany(sampleTickets);
-  console.log('✅ SQLite database initialized and seeded with 5 sample tickets.');
+  seedFullDatabase();
 }
