@@ -489,6 +489,62 @@ select:focus {
   background-color: var(--priority-urgent-bg);
   color: var(--priority-urgent-text);
 }
+
+.urgent-ticket-row td,
+.urgent-ticket-card {
+  border-color: #fecaca !important;
+  background-color: #fff7f7;
+}
+
+.urgent-ticket-row td:first-child {
+  box-shadow: inset 4px 0 0 #dc2626;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.urgent-ticket-due {
+  color: #dc2626 !important;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ticket-due-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.urgent-overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: urgent-overdue-pulse 1.8s ease-in-out infinite;
+}
+
+.urgent-countdown-badge {
+  border-color: #fdba74;
+  background: #ea580c;
+  animation: none;
+}
+
+@keyframes urgent-overdue-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.15); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12); }
+}
 .badge-priority-high {
   background-color: var(--priority-high-bg);
   color: var(--priority-high-text);
@@ -2416,15 +2472,6 @@ select.filter-select.badge {
   border-radius: 9999px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.session-auth-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #059669;
 }
 
 .session-right {

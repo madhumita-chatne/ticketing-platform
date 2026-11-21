@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, Shield, Headphones, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield, Headphones, ArrowLeft } from 'lucide-react';
 
 export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot = '/api', agents = [] }) {
   const storageKey = `ticketflow_auth_${role}`;
@@ -248,10 +248,6 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
           <span className="session-role-badge" style={{ backgroundColor: roleColor }}>
             {roleTitle} Active
           </span>
-          <span className="session-auth-badge">
-            <CheckCircle2 size={13} color="#10b981" />
-            <span>Authenticated</span>
-          </span>
         </div>
         <div className="session-right">
           <button
@@ -263,14 +259,23 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
             Homepage
           </button>
           {role === 'admin' && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => onNavigate && onNavigate('/agent')}
-              title="Go to Agent Workspace"
+            <select
+              className="filter-select"
+              defaultValue=""
+              aria-label="Select an agent for Agent Workspace"
+              title="Open Agent Workspace"
+              onChange={(e) => {
+                const agentId = e.target.value;
+                if (!agentId) return;
+                sessionStorage.setItem('ticketflow_logged_agent_id', agentId);
+                if (onNavigate) onNavigate('/agent');
+              }}
             >
-              Agent Workspace
-            </button>
+              <option value="" disabled>Agent Workspace</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>{agent.name}</option>
+              ))}
+            </select>
           )}
           <button
             type="button"

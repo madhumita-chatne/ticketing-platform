@@ -10,7 +10,6 @@ export default function Header({ onNewTicket, onRefresh, loading }) {
         </div>
         <div>
           <div className="brand-title">TicketFlow</div>
-          <div className="brand-subtitle">React + Node.js + SQLite Ticket Tracker</div>
         </div>
       </div>
 

@@ -19,7 +19,9 @@ import {
   ArrowRight, 
   Filter, 
   Layers, 
-  AlertCircle 
+  AlertCircle,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 
 export default function UserWebsite({ apiBase }) {
@@ -35,8 +37,7 @@ export default function UserWebsite({ apiBase }) {
     description: '',
     customer_name: '',
     customer_email: '',
-    category: 'Complaint',
-    priority: 'medium'
+    category: 'Complaint'
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(null);
@@ -54,6 +55,7 @@ export default function UserWebsite({ apiBase }) {
   const [trackerSearch, setTrackerSearch] = useState('');
   const [trackerStatus, setTrackerStatus] = useState('all');
   const [trackerPriority, setTrackerPriority] = useState('all');
+  const [trackedViewMode, setTrackedViewMode] = useState('list');
   const [lookupEmail, setLookupEmail] = useState(() => {
     return (typeof window !== 'undefined' && localStorage.getItem('ticketflow_my_email')) || '';
   });
@@ -229,7 +231,6 @@ export default function UserWebsite({ apiBase }) {
         customer_name: formData.customer_name.trim(),
         customer_email: formData.customer_email.trim(),
         category: formData.category,
-        priority: formData.priority,
         status: 'open',
         auto_assign: true
       };
@@ -260,8 +261,7 @@ export default function UserWebsite({ apiBase }) {
         description: '',
         customer_name: '',
         customer_email: '',
-        category: 'Complaint',
-        priority: 'medium'
+        category: 'Complaint'
       });
       setFieldErrors({});
       setTouched({});
@@ -346,7 +346,6 @@ export default function UserWebsite({ apiBase }) {
               <span className="website-logo-badge">Customer Support</span>
             </div>
           </div>
-
           {/* Action button to direct user to tickets section at end of screen */}
           <div className="website-nav-actions">
             <button
@@ -530,6 +529,28 @@ export default function UserWebsite({ apiBase }) {
                 <RefreshCw size={14} className={loadingTracked ? 'spin' : ''} />
                 <span>Refresh</span>
               </button>
+
+              {/* View Mode Toggle (List vs Cards) */}
+              <div className="view-mode-toggle">
+                <button
+                  type="button"
+                  className={`btn-view-toggle ${trackedViewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setTrackedViewMode('list')}
+                  title="Switch to List View"
+                >
+                  <List size={15} />
+                  <span>List</span>
+                </button>
+                <button
+                  type="button"
+                  className={`btn-view-toggle ${trackedViewMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setTrackedViewMode('cards')}
+                  title="Switch to Card View"
+                >
+                  <LayoutGrid size={15} />
+                  <span>Cards</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -596,6 +617,87 @@ export default function UserWebsite({ apiBase }) {
                 <span>Raise a Concern</span>
               </button>
             </div>
+          ) : trackedViewMode === 'list' ? (
+            <div className="table-container">
+              <table className="ticket-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '80px' }}>ID</th>
+                    <th>Concern & Details</th>
+                    <th style={{ width: '100px' }}>Priority</th>
+                    <th style={{ width: '120px' }}>Status</th>
+                    <th style={{ width: '160px' }}>Specialist</th>
+                    <th style={{ width: '140px' }}>Logged At</th>
+                    <th style={{ width: '85px' }}>Replies</th>
+                    <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTrackedTickets.map((t) => (
+                    <tr
+                      key={t.id}
+                      onClick={() => openTicketDetails(t)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        <span className="complaint-id">#{t.id}</span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+                          {t.title || t.subject}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '420px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {t.description || 'No description provided.'}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                      </td>
+                      <td>
+                        <span className={`badge badge-status-${t.status}`}>
+                          {t.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td>
+                        {t.agent_name && t.agent_name !== 'Unassigned' ? (
+                          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{t.agent_name}</span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#b45309' }}>Auto-assigning</span>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Clock size={12} />
+                          <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          {new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="complaint-comments-badge" style={{ fontSize: '0.78rem' }}>
+                          <MessageSquare size={12} />
+                          <span>{t.comments_count || 0}</span>
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          style={{ background: '#0284c7', borderColor: '#0284c7', padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTicketDetails(t);
+                          }}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="complaints-grid">
               {filteredTrackedTickets.map((t) => (
@@ -606,7 +708,7 @@ export default function UserWebsite({ apiBase }) {
                 >
                   <div className="complaint-card-top">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {/* <span className="complaint-id">#{t.id}</span> */}
+                      <span className="complaint-id">#{t.id}</span>
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
                       <span className="ticket-category">{t.category}</span>
                     </div>
@@ -836,19 +938,6 @@ export default function UserWebsite({ apiBase }) {
                         <option value="Technical">Technical Support</option>
                         <option value="Product">Product Issue</option>
                         <option value="General">General Inquiry</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Priority</label>
-                      <select
-                        value={formData.priority}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      >
-                        <option value="low">Low (General inquiry)</option>
-                        <option value="medium">Medium (Standard concern)</option>
-                        <option value="high">High (Impacting my work)</option>
-                        <option value="urgent">Urgent (Service blocker)</option>
                       </select>
                     </div>
                   </div>

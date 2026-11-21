@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Headphones, MessageSquare, Send, User } from 'lucide-react';
+import { X, Trash2, Headphones, MessageSquare, Send, User, Clock } from 'lucide-react';
+import { formatTicketDueDate, getUrgentOverdueLabel } from '../utils.js';
 
 export default function TicketModal({ isOpen, onClose, onSave, onDelete, ticket, agents = [], apiBase }) {
   const isEditing = Boolean(ticket && ticket.id);
@@ -240,11 +241,22 @@ export default function TicketModal({ isOpen, onClose, onSave, onDelete, ticket,
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
+                  <option value="low">Low — 5 working days</option>
+                  <option value="medium">Medium — 3 working days</option>
+                  <option value="high">High — 2 working days</option>
+                  <option value="urgent">Urgent — 2 hours</option>
                 </select>
+                {isEditing && (
+                  <div className={ticket.priority === 'urgent' ? 'urgent-ticket-due' : ''} style={{ fontSize: '0.78rem', marginTop: '0.35rem' }}>
+                    Due: {formatTicketDueDate({ ...ticket, priority: formData.priority })}
+                    {getUrgentOverdueLabel({ ...ticket, priority: formData.priority, status: formData.status }) && (
+                      <span className="urgent-overdue-badge" style={{ marginLeft: '0.5rem' }}>
+                        <Clock size={11} />
+                        {getUrgentOverdueLabel({ ...ticket, priority: formData.priority, status: formData.status })}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

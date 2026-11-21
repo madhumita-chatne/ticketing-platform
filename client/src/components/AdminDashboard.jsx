@@ -4,6 +4,7 @@ import StatCard from './StatCard.jsx';
 import FilterBar from './FilterBar.jsx';
 import TicketCard from './TicketCard.jsx';
 import TicketModal from './TicketModal.jsx';
+import { formatTicketDueDate, getUrgentOverdueLabel } from '../utils.js';
 import { Layers, Clock, CheckCircle, CheckCheck, Inbox, AlertTriangle, UserCheck, Shield } from 'lucide-react';
 
 const KANBAN_COLUMNS = [
@@ -42,6 +43,12 @@ export default function AdminDashboard({
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingTicket, setEditingTicket] = React.useState(null);
+  const [currentTime, setCurrentTime] = React.useState(() => new Date());
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const handleToggleAgent = async (agentId, currentStatus, e) => {
     e.stopPropagation();
@@ -235,6 +242,7 @@ export default function AdminDashboard({
                       key={ticket.id}
                       ticket={ticket}
                       agents={agents}
+                      currentTime={currentTime}
                       onEdit={(t) => {
                         setEditingTicket(t);
                         setIsModalOpen(true);
@@ -259,6 +267,7 @@ export default function AdminDashboard({
                 <th>Customer</th>
                 <th>Category</th>
                 <th>Priority</th>
+                <th>Due Date</th>
                 <th>Status</th>
                 <th>Assigned Agent</th>
                 <th>Created</th>
@@ -268,13 +277,13 @@ export default function AdminDashboard({
             <tbody>
               {tickets.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
                     No tickets match the selected filters.
                   </td>
                 </tr>
               ) : (
                 tickets.map((t) => (
-                  <tr key={t.id}>
+                  <tr key={t.id} className={t.priority === 'urgent' ? 'urgent-ticket-row' : ''}>
                     <td style={{ fontWeight: 600, color: '#64748b' }}>#{t.id}</td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{t.title || t.subject}</div>
@@ -295,6 +304,15 @@ export default function AdminDashboard({
                     </td>
                     <td>
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                    </td>
+                    <td className={t.priority === 'urgent' ? 'urgent-ticket-due' : ''} style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      {formatTicketDueDate(t)}
+                      {getUrgentOverdueLabel(t, currentTime) && (
+                        <div className="urgent-overdue-badge" style={{ marginTop: '0.25rem' }}>
+                          <Clock size={11} />
+                          <span>{getUrgentOverdueLabel(t, currentTime)}</span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <select

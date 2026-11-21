@@ -242,9 +242,17 @@ This document records all prompts given to Antigravity in this repository, the a
   - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
   - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
 - **Actions Taken**:
-  - Removed popup tracker modal and embedded an interactive tickets section (`#my-tickets-section`) directly at the end of the user screen.
-  - Wired navbar and hero track buttons to execute smooth scroll to the tickets section.
-  - Populated all tickets on mount and equipped with search, status filter, priority filter, and email lookup.
+  - **Removed Modal**: Completely removed `isTrackerModalOpen` and the tracker modal overlay popup.
+  - **In-Page Tickets Section ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Created `<section className="website-tickets-section" id="my-tickets-section">` at the end of the user screen directly preceding the footer.
+    - Loaded all tickets automatically on mount (`fetchTrackedTickets`).
+    - Equipped the section with a live search bar, status filter dropdown, priority filter dropdown, email lookup input, and refresh button.
+    - Rendered tickets in responsive complaint cards showing Ticket ID, Priority, Status, Category, Subject, Description preview, Assigned Specialist badge, timestamp, and comments count badge.
+    - Maintained direct conversation drawer access when clicking any ticket card.
+  - **Smooth Scrolling Navigation**:
+    - Both the Hero section button and top Navbar button invoke `scrollToTicketsSection()`, smoothly scrolling the viewport directly down to the tickets section.
+  - **Styling ([client/src/index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
+    - Added styles for `.website-tickets-section`, `.website-tickets-container`, `.website-tickets-toolbar`, and `.tickets-filter-controls`.
 - **Status**: ✅ Completed successfully.
 
 ---
@@ -532,6 +540,31 @@ This document records all prompts given to Antigravity in this repository, the a
   - Verified `git status`: Working tree clean on branch `dev-shivani`.
   - Verified Vite compilation (`npm --prefix client run build`) in 1.04s with zero errors.
   - Verified backend server (port 5001) and frontend dev server (port 5173) are actively running.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #24: Resolve Merge Conflicts with origin/first_branch (SLA Integration)
+- **Date & Time**: `2026-11-21 15:27:00 +05:30`
+- **User Prompt**:
+  > *"fix the merge conflicts without losing any functionality"*
+- **Intent**: Resolve all unmerged file conflicts between `demo-prep` and `origin/first_branch` (`f05323a`, "sla added") without losing any existing functionality (agent availability, validation, modal layering, SLA due dates, list/card view modes).
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/utils.js`](file:///Users/madhumita/ticketing-system/client/src/utils.js)
+  - Backend: [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js), [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js), [`server/src/sla.js`](file:///Users/madhumita/ticketing-system/server/src/sla.js)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Database Migration & Seeding ([server/src/db.js](file:///Users/madhumita/ticketing-system/server/src/db.js))**:
+    - Merged `calculateDueAt` SLA calculations alongside `seedFullDatabase` to compute and populate SLA due dates and urgent timestamps across all seeded and runtime tickets.
+  - **User Portal View Modes & Navigation ([client/src/components/UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Integrated View Mode Toggle (`List` vs `Cards`) for the in-page tracked tickets section.
+    - Preserved top navbar "Track All My Tickets" button with smooth scroll navigation.
+    - Retained custom Lucide `Layers` icon on Priority filter and visible `#{t.id}` ticket tags.
+  - **Admin Dashboard & Styling**:
+    - Confirmed preservation of Support Agents Roster Bar (`X Online / Y Total`), status indicator dots, and online/offline toggle badges alongside new SLA due date countdown badges.
+- **Verification & Outcome**:
+  - All 4 conflicted files resolved with zero conflict markers.
+  - Verified Vite compilation (`npm --prefix client run build`) in 1.02s with zero errors.
 - **Status**: ✅ Completed successfully.
 
 ---

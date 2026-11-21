@@ -247,8 +247,9 @@ The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhum
     - Status filter dropdown (`all`, `open`, `in_progress`, `resolved`, `closed`).
     - Priority filter dropdown (`all`, `urgent`, `high`, `medium`, `low`).
     - Email lookup bar to filter specifically to any user email.
-    - Real-time card display with ID, status, priority, category, assigned specialist pill, and comments counter.
-  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card (positioned at `z-index: 1000` with `calc(100vh - 5rem)` clearance to eliminate collisions with the sticky top navbar).
+    - View mode toggle between **List Table View** and **Card Grid View**.
+    - Real-time card/table display with ID, status, priority, category, assigned specialist pill, logged timestamp, and comments counter.
+  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card (positioned at `z-index: 2000 !important` with `calc(100vh - 5rem)` clearance to eliminate collisions with the sticky top navbar).
   - Clean footer without staff portal links.
 
 ### 2. 🛡️ Admin Portal (`/admin`) — *Basic Auth Protected*
