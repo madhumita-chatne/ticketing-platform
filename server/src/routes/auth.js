@@ -5,7 +5,7 @@ const router = express.Router();
 // POST /api/auth/verify - Validate basic auth password for admin and agent portals
 router.post('/verify', (req, res) => {
   const { password } = req.body;
-  const commonPassword = process.env.COMMON_PASSWORD || 'admin123';
+  const commonPassword = process.env.COMMON_PASSWORD || 'admin123';  // not ideal but have to for demo :(
 
   if (!password) {
     return res.status(400).json({ success: false, message: 'Password is required' });

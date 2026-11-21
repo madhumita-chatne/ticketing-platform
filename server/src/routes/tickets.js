@@ -237,22 +237,10 @@ router.post('/', (req, res) => {
     if (!ticketTitle) {
       return res.status(400).json({ success: false, message: 'Concern subject/title is required' });
     }
-    if (ticketTitle.length < 5 || ticketTitle.length > 150) {
-      return res.status(400).json({
-        success: false,
-        message: 'Concern subject must be between 5 and 150 characters'
-      });
-    }
 
     const ticketDesc = (description || '').trim();
     if (!ticketDesc) {
       return res.status(400).json({ success: false, message: 'Concern description is required' });
-    }
-    if (ticketDesc.length < 15 || ticketDesc.length > 3000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Concern description must be between 15 and 3000 characters'
-      });
     }
 
     const custName = (customer_name || '').trim();

@@ -65,23 +65,11 @@ export default function UserWebsite({ apiBase }) {
         if (!value || !value.trim()) {
           return 'Concern subject is required.';
         }
-        if (value.trim().length < 5) {
-          return `Subject must be at least 5 characters (${value.trim().length}/5).`;
-        }
-        if (value.trim().length > 150) {
-          return `Subject cannot exceed 150 characters (${value.trim().length}/150).`;
-        }
         return '';
 
       case 'description':
         if (!value || !value.trim()) {
           return 'Detailed description is required.';
-        }
-        if (value.trim().length < 15) {
-          return `Please provide more detail (${value.trim().length}/15 chars minimum).`;
-        }
-        if (value.trim().length > 3000) {
-          return 'Description cannot exceed 3000 characters.';
         }
         return '';
 
@@ -790,18 +778,14 @@ export default function UserWebsite({ apiBase }) {
                   )}
 
                   <div className="form-group">
-                    <div className="form-label-row">
-                      <label>Concern Subject *</label>
-                      <span className="field-char-count">{formData.subject.length}/150</span>
-                    </div>
+                    <label>Concern Subject *</label>
                     <input
                       type="text"
                       className={touched.subject && fieldErrors.subject ? 'input-error' : ''}
-                      placeholder="Brief summary of your issue (min 5 characters)..."
+                      placeholder="Brief summary of your issue..."
                       value={formData.subject}
                       onChange={(e) => handleInputChange('subject', e.target.value)}
                       onBlur={() => handleBlur('subject')}
-                      maxLength={150}
                       autoFocus
                     />
                     {touched.subject && fieldErrors.subject && (
@@ -812,18 +796,14 @@ export default function UserWebsite({ apiBase }) {
                   </div>
 
                   <div className="form-group">
-                    <div className="form-label-row">
-                      <label>Describe Your Concern in Detail *</label>
-                      <span className="field-char-count">{formData.description.length}/3000</span>
-                    </div>
+                    <label>Describe Your Concern in Detail *</label>
                     <textarea
                       rows={4}
                       className={touched.description && fieldErrors.description ? 'input-error' : ''}
-                      placeholder="Please provide full details about what happened, steps to reproduce, or assistance needed (min 15 characters)..."
+                      placeholder="Please provide full details about what happened, steps to reproduce, or assistance needed..."
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       onBlur={() => handleBlur('description')}
-                      maxLength={3000}
                     />
                     {touched.description && fieldErrors.description && (
                       <span className="field-error-text">

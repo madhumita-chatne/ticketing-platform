@@ -213,8 +213,8 @@ Both the React client and the Express backend enforce strict validation rules to
 
 | Field | Rules & Constraints | Error Message |
 | :--- | :--- | :--- |
-| **Subject / Title** | Required, 5 to 150 characters, trimmed | *"Subject must be at least 5 characters (min 5, max 150)."* |
-| **Description** | Required, 15 to 3000 characters, trimmed | *"Please provide at least 15 characters describing your concern."* |
+| **Subject / Title** | Required, non-empty, trimmed (no character count limits) | *"Concern subject is required."* |
+| **Description** | Required, non-empty, trimmed (no character count limits) | *"Detailed description is required."* |
 | **Customer Name** | Required, 2 to 80 characters | *"Your name is required (min 2 characters)."* |
 | **Customer Email** | Required, RFC 5322 regex (`name@domain.com`) | *"Please enter a valid email address."* |
 | **Category** | Allowed: `Complaint`, `Billing`, `Technical`, `Product`, `General` | *"Please select a valid category."* |
@@ -223,7 +223,7 @@ Both the React client and the Express backend enforce strict validation rules to
 ### Interactive Client Validation Experience:
 - **Real-Time On-Blur**: Individual fields validate when the user tabs or clicks away.
 - **Visual Feedback**: Invalid inputs are outlined with red borders (`.input-error`) and show an error badge with an `<AlertCircle />` icon.
-- **Live Character Counters**: Displays live character counts (e.g., `12/150` for subject, `45/3000` for description).
+- **Non-Empty Requirements**: Subject and Description only require being non-empty without minimum or maximum character limits.
 - **Submission Guard**: Blocks dispatching network requests if any validation constraint is unmet and surfaces a top-level summary banner.
 
 ---

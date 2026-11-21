@@ -389,6 +389,29 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #19: Remove Character Count Validation from Concern Subject & Description
+- **Date & Time**: `2026-11-21 14:47:35 +05:30`
+- **User Prompt**:
+  > *"Describe Your Concern in Detail, Concern Subject - should not have the validation of character count - it just shouldnt be empty"*
+- **Intent**: Remove minimum and maximum character length constraints from both "Concern Subject" and "Describe Your Concern in Detail", requiring only that they are non-empty.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Backend: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Frontend ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Simplified `validateField('subject')` to verify only non-empty input (`!value || !value.trim()`), removing 5-character minimum and 150-character maximum limits.
+    - Simplified `validateField('description')` to verify only non-empty input (`!value || !value.trim()`), removing 15-character minimum and 3000-character maximum limits.
+    - Removed character counter badges (`{formData.subject.length}/150` and `{formData.description.length}/3000`).
+    - Cleaned placeholders and removed `maxLength` properties so users can input any length subject and description without restriction.
+  - **Backend ([server/src/routes/tickets.js](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js))**:
+    - Updated `POST /api/tickets` to enforce only non-empty checks for `ticketTitle` and `ticketDesc`, removing the 5-150 and 15-3000 character boundaries.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown

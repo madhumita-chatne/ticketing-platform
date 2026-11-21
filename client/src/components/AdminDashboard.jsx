@@ -74,7 +74,7 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Agents Roster Bar */}
+      {/* Agents Roster Bar
       <div className="agents-roster-bar">
         <div className="roster-title">
           <Shield size={16} color="#4f46e5" />
@@ -109,7 +109,7 @@ export default function AdminDashboard({
             <span>⚡ Auto-Assign ({stats.unassigned})</span>
           </button>
         )}
-      </div>
+      </div> */}
 
       {/* Stats Summary Cards */}
       <div className="stats-grid">
