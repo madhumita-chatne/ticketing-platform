@@ -3,7 +3,7 @@ import { db } from '../db.js';
 
 const router = express.Router();
 
-// GET /api/agents - List all agents with ticket statistics
+// GET /api/agents - List all agents with ticket statistics & active workload
 router.get('/', (req, res) => {
   try {
     const agents = db.prepare(`
@@ -12,12 +12,13 @@ router.get('/', (req, res) => {
         COUNT(t.id) as total_tickets,
         SUM(CASE WHEN t.status = 'open' THEN 1 ELSE 0 END) as open_tickets,
         SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_tickets,
+        SUM(CASE WHEN t.status IN ('open', 'in_progress') THEN 1 ELSE 0 END) as active_load,
         SUM(CASE WHEN t.status = 'resolved' THEN 1 ELSE 0 END) as resolved_tickets,
         SUM(CASE WHEN t.status = 'closed' THEN 1 ELSE 0 END) as closed_tickets
       FROM agents a
       LEFT JOIN tickets t ON t.agent_id = a.id
       GROUP BY a.id
-      ORDER BY a.id ASC
+      ORDER BY active_load ASC, a.id ASC
     `).all();
 
     res.json({ success: true, count: agents.length, data: agents });

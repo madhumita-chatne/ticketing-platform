@@ -192,9 +192,10 @@ export default function TicketModal({ isOpen, onClose, onSave, onDelete, ticket,
                   onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
                 >
                   <option value="">Unassigned</option>
+                  <option value="auto">⚡ Auto-Assign (Least Loaded Agent)</option>
                   {agents.map((agent) => (
                     <option key={agent.id} value={agent.id}>
-                      {agent.name} — {agent.department} ({agent.role})
+                      {agent.name} — {agent.department} ({agent.active_load || 0} active)
                     </option>
                   ))}
                 </select>

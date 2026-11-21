@@ -36,6 +36,7 @@ export default function AdminDashboard({
   onStatusChange,
   onDeleteTicket,
   onAssignAgent,
+  onAutoAssignAll,
   apiBase
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -81,7 +82,7 @@ export default function AdminDashboard({
       <div className="agents-roster-bar">
         <div className="roster-title">
           <Shield size={16} color="#4f46e5" />
-          <span>Support Agents Team (5 Active):</span>
+          <span>Support Agents Team & Active Load:</span>
         </div>
         <div className="agents-roster-list">
           {agents.map((agent) => (
@@ -89,19 +90,29 @@ export default function AdminDashboard({
               key={agent.id}
               className={`roster-pill ${agentFilter === String(agent.id) ? 'active' : ''}`}
               onClick={() => setAgentFilter(agentFilter === String(agent.id) ? 'all' : String(agent.id))}
-              title={`Click to filter by ${agent.name}`}
+              title={`Click to filter by ${agent.name}. Active load: ${agent.active_load || 0} tickets`}
             >
               <div className="roster-avatar" style={{ backgroundColor: agent.avatar_color || '#4f46e5' }}>
                 {agent.name.split(' ').map((n) => n[0]).join('')}
               </div>
               <div className="roster-details">
                 <span className="roster-name">{agent.name}</span>
-                <span className="roster-role">{agent.department}</span>
+                <span className="roster-role">{agent.department} • <strong>{agent.active_load || 0} active</strong></span>
               </div>
               <span className="roster-count">{agent.total_tickets || 0}</span>
             </div>
           ))}
         </div>
+        {stats.unassigned > 0 && onAutoAssignAll && (
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onAutoAssignAll}
+            title="Auto-assign unassigned tickets to the least loaded agents"
+            style={{ marginLeft: 'auto', background: '#059669', borderColor: '#059669' }}
+          >
+            <span>⚡ Auto-Assign ({stats.unassigned})</span>
+          </button>
+        )}
       </div>
 
       {/* Stats Summary Cards */}
@@ -264,14 +275,15 @@ export default function AdminDashboard({
                         value={t.agent_id || ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          onAssignAgent(t.id, val ? Number(val) : null);
+                          onAssignAgent(t.id, val === 'auto' ? 'auto' : val ? Number(val) : null);
                         }}
                         style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px' }}
                       >
                         <option value="">Unassigned</option>
+                        <option value="auto">⚡ Auto-Assign (Least Loaded)</option>
                         {agents.map((a) => (
                           <option key={a.id} value={a.id}>
-                            {a.name}
+                            {a.name} ({a.active_load || 0} active)
                           </option>
                         ))}
                       </select>

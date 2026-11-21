@@ -67,6 +67,7 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
             title="Assign ticket to an agent"
           >
             <option value="">Unassigned</option>
+            <option value="auto">⚡ Auto-Assign (Least Loaded)</option>
             {agents.map((agent) => (
               <option key={agent.id} value={agent.id}>
                 {agent.name}

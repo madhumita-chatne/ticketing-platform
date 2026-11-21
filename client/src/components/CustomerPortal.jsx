@@ -354,10 +354,12 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
                   <CheckCircle2 size={32} />
                 </div>
                 <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#0f172a' }}>
-                  Complaint #{submitSuccess.id} Submitted!
+                  Complaint #{submitSuccess.id} Submitted & Auto-Assigned!
                 </h3>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '420px', margin: '0 auto 1.5rem' }}>
-                  Your concern regarding <strong>"{submitSuccess.title}"</strong> has been logged. It is now visible in the Admin Dashboard and will be assigned to a support agent shortly.
+                <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '440px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
+                  Your concern regarding <strong>"{submitSuccess.title}"</strong> has been logged and automatically assigned to support specialist{' '}
+                  <strong style={{ color: '#047857' }}>{submitSuccess.agent_name || 'an available specialist'}</strong>{' '}
+                  ({submitSuccess.agent_department || 'Customer Support'}) based on active workload balancing.
                 </p>
                 <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center' }}>
                   <button
@@ -377,13 +379,20 @@ export default function CustomerPortal({ apiBase, onTicketCreated }) {
                       setIsRaiseModalOpen(false);
                     }}
                   >
-                    View Status & Responses
+                    View Status & Conversation
                   </button>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleRaiseComplaint}>
                 <div className="modal-body">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.85rem', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', fontSize: '0.8rem', color: '#065f46', marginBottom: '0.85rem' }}>
+                    <ShieldCheck size={16} />
+                    <span>
+                      <strong>Smart Workload Routing:</strong> Your complaint will be auto-assigned to the support agent with the lowest active workload.
+                    </span>
+                  </div>
+
                   {formError && (
                     <div style={{ color: '#dc2626', background: '#fee2e2', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem' }}>
                       {formError}

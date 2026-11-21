@@ -3,17 +3,37 @@ import { db } from '../db.js';
 
 const router = express.Router();
 
+// Helper: Find the least loaded agent based on active open & in_progress tickets
+export function getLeastLoadedAgent() {
+  return db.prepare(`
+    SELECT 
+      a.id,
+      a.name,
+      a.email,
+      a.role,
+      a.department,
+      a.avatar_color,
+      COUNT(CASE WHEN t.status IN ('open', 'in_progress') THEN 1 END) AS active_load,
+      COUNT(t.id) AS total_assigned
+    FROM agents a
+    LEFT JOIN tickets t ON t.agent_id = a.id
+    GROUP BY a.id
+    ORDER BY active_load ASC, total_assigned ASC, a.id ASC
+    LIMIT 1
+  `).get();
+}
+
 // Helper: look up agent by ID or Name
 function resolveAgent(agentId, assigneeName) {
   if (agentId) {
-    const agent = db.prepare('SELECT id, name FROM agents WHERE id = ?').get(agentId);
-    if (agent) return { agentId: agent.id, assignee: agent.name };
+    const agent = db.prepare('SELECT id, name, role, department FROM agents WHERE id = ?').get(agentId);
+    if (agent) return { agentId: agent.id, assignee: agent.name, agent };
   }
   if (assigneeName && assigneeName !== 'Unassigned') {
-    const agent = db.prepare('SELECT id, name FROM agents WHERE name LIKE ?').get(assigneeName.trim());
-    if (agent) return { agentId: agent.id, assignee: agent.name };
+    const agent = db.prepare('SELECT id, name, role, department FROM agents WHERE name LIKE ?').get(assigneeName.trim());
+    if (agent) return { agentId: agent.id, assignee: agent.name, agent };
   }
-  return { agentId: null, assignee: assigneeName || 'Unassigned' };
+  return { agentId: null, assignee: assigneeName || 'Unassigned', agent: null };
 }
 
 // GET /api/tickets - List all tickets with flexible filtering
@@ -183,7 +203,7 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST /api/tickets - Create a new ticket (supports customer complaint or admin creation)
+// POST /api/tickets - Create a new ticket (with intelligent load-balanced auto-assignment)
 router.post('/', (req, res) => {
   try {
     const {
@@ -193,8 +213,9 @@ router.post('/', (req, res) => {
       status = 'open',
       priority = 'medium',
       category = 'General',
-      assignee = 'Unassigned',
-      agent_id = null,
+      assignee,
+      agent_id,
+      auto_assign = true,
       customer_name = 'Customer',
       customer_email = ''
     } = req.body;
@@ -215,8 +236,30 @@ router.post('/', (req, res) => {
       return res.status(400).json({ success: false, message: `Invalid priority: must be one of ${validPriorities.join(', ')}` });
     }
 
-    // Resolve agent assignment
-    const { agentId, assignee: resolvedAssignee } = resolveAgent(agent_id, assignee);
+    // Load-balanced Agent Assignment logic
+    let targetAgentId = null;
+    let targetAssignee = 'Unassigned';
+    let assignedAgent = null;
+
+    if (agent_id && agent_id !== 'auto' && agent_id !== 'unassigned') {
+      const resolved = resolveAgent(agent_id, null);
+      targetAgentId = resolved.agentId;
+      targetAssignee = resolved.assignee;
+      assignedAgent = resolved.agent;
+    } else if (assignee && assignee !== 'Unassigned' && assignee !== 'auto') {
+      const resolved = resolveAgent(null, assignee);
+      targetAgentId = resolved.agentId;
+      targetAssignee = resolved.assignee;
+      assignedAgent = resolved.agent;
+    } else if (auto_assign !== false) {
+      // Find the least loaded agent (lowest active 'open' + 'in_progress' tickets)
+      const leastLoaded = getLeastLoadedAgent();
+      if (leastLoaded) {
+        targetAgentId = leastLoaded.id;
+        targetAssignee = leastLoaded.name;
+        assignedAgent = leastLoaded;
+      }
+    }
 
     const stmt = db.prepare(`
       INSERT INTO tickets (title, description, status, priority, category, assignee, agent_id, customer_name, customer_email)
@@ -229,20 +272,123 @@ router.post('/', (req, res) => {
       status,
       priority,
       category.trim(),
-      resolvedAssignee,
-      agentId,
+      targetAssignee,
+      targetAgentId,
       customer_name.trim() || 'Customer',
       customer_email.trim()
     );
 
+    const ticketId = result.lastInsertRowid;
+
+    // If auto-assigned, generate an initial acknowledgment comment from the assigned agent
+    if (assignedAgent && auto_assign !== false) {
+      db.prepare(`
+        INSERT INTO comments (ticket_id, author, author_role, content)
+        VALUES (?, ?, 'agent', ?)
+      `).run(
+        ticketId,
+        assignedAgent.name,
+        `Hello ${customer_name.trim() || 'there'}! I am ${assignedAgent.name} from the ${assignedAgent.department} team. Your concern has been automatically assigned to me based on current agent workload balancing. I am reviewing your request and will assist you shortly.`
+      );
+    }
+
     const newTicket = db.prepare(`
+      SELECT t.*, t.title as subject, a.name as agent_name, a.role as agent_role, a.department as agent_department
+      FROM tickets t
+      LEFT JOIN agents a ON a.id = t.agent_id
+      WHERE t.id = ?
+    `).get(ticketId);
+
+    res.status(201).json({
+      success: true,
+      data: newTicket,
+      auto_assigned: Boolean(assignedAgent),
+      message: assignedAgent 
+        ? `Ticket created and auto-assigned to ${assignedAgent.name} (${assignedAgent.department})`
+        : 'Ticket created successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/tickets/:id/auto-assign - Auto-assign a specific ticket to the least loaded agent
+router.post('/:id/auto-assign', (req, res) => {
+  try {
+    const { id } = req.params;
+    const ticket = db.prepare('SELECT id, title, customer_name FROM tickets WHERE id = ?').get(id);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+
+    const leastLoaded = getLeastLoadedAgent();
+    if (!leastLoaded) {
+      return res.status(400).json({ success: false, message: 'No available agents found' });
+    }
+
+    db.prepare(`
+      UPDATE tickets 
+      SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(leastLoaded.id, leastLoaded.name, id);
+
+    // Record comment about auto-assignment
+    db.prepare(`
+      INSERT INTO comments (ticket_id, author, author_role, content)
+      VALUES (?, ?, 'agent', ?)
+    `).run(
+      id,
+      leastLoaded.name,
+      `Ticket re-assigned to ${leastLoaded.name} (${leastLoaded.department}) to balance agent workload (Current active load: ${leastLoaded.active_load}).`
+    );
+
+    const updated = db.prepare(`
       SELECT t.*, t.title as subject, a.name as agent_name, a.role as agent_role
       FROM tickets t
       LEFT JOIN agents a ON a.id = t.agent_id
       WHERE t.id = ?
-    `).get(result.lastInsertRowid);
+    `).get(id);
 
-    res.status(201).json({ success: true, data: newTicket, message: 'Ticket created successfully' });
+    res.json({
+      success: true,
+      data: updated,
+      message: `Ticket #${id} auto-assigned to ${leastLoaded.name} (Active load: ${leastLoaded.active_load})`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/tickets/auto-assign-all - Auto-assign all unassigned tickets to balance workload
+router.post('/auto-assign-all', (req, res) => {
+  try {
+    const unassignedTickets = db.prepare(`
+      SELECT id, title, customer_name 
+      FROM tickets 
+      WHERE agent_id IS NULL OR assignee = 'Unassigned'
+      ORDER BY created_at ASC
+    `).all();
+
+    let assignedCount = 0;
+    for (const t of unassignedTickets) {
+      const leastLoaded = getLeastLoadedAgent();
+      if (leastLoaded) {
+        db.prepare('UPDATE tickets SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          .run(leastLoaded.id, leastLoaded.name, t.id);
+        
+        db.prepare(`
+          INSERT INTO comments (ticket_id, author, author_role, content)
+          VALUES (?, ?, 'agent', ?)
+        `).run(t.id, leastLoaded.name, `Ticket auto-assigned to ${leastLoaded.name} to balance agent workload.`);
+        assignedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      assignedCount,
+      message: `Successfully auto-assigned ${assignedCount} ticket(s) across agents.`
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -373,7 +519,7 @@ router.patch('/:id', (req, res) => {
   }
 });
 
-// POST /api/tickets/:id/assign - Quick assign ticket to an agent
+// POST /api/tickets/:id/assign - Manual assign ticket to a specific agent
 router.post('/:id/assign', (req, res) => {
   try {
     const { id } = req.params;
@@ -432,7 +578,7 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-// POST /api/tickets/:id/comments - Add comment to a ticket (from Agent, Customer, or Admin)
+// POST /api/tickets/:id/comments - Add comment to a ticket
 router.post('/:id/comments', (req, res) => {
   try {
     const { id } = req.params;

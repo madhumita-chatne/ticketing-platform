@@ -160,13 +160,17 @@ export default function App() {
     }
   };
 
-  // Quick assign ticket to agent
+  // Quick assign ticket to agent (or auto-assign)
   const handleAssignAgent = async (ticketId, agentId) => {
     try {
-      const res = await fetch(`${API_TICKETS}/${ticketId}/assign`, {
+      const isAuto = agentId === 'auto';
+      const url = isAuto ? `${API_TICKETS}/${ticketId}/auto-assign` : `${API_TICKETS}/${ticketId}/assign`;
+      const body = isAuto ? {} : { agent_id: agentId };
+
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agentId })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (data.success) {
@@ -174,6 +178,21 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to assign agent:', err);
+    }
+  };
+
+  // Auto-assign all unassigned tickets
+  const handleAutoAssignAll = async () => {
+    try {
+      const res = await fetch(`${API_TICKETS}/auto-assign-all`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        await Promise.all([fetchTicketsAndStats(), fetchAgents()]);
+      }
+    } catch (err) {
+      console.error('Failed to auto-assign all:', err);
     }
   };
 
@@ -241,6 +260,7 @@ export default function App() {
           onStatusChange={handleStatusChange}
           onDeleteTicket={handleDeleteTicket}
           onAssignAgent={handleAssignAgent}
+          onAutoAssignAll={handleAutoAssignAll}
           apiBase={API_TICKETS}
         />
       )}
