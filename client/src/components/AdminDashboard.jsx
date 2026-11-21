@@ -37,10 +37,31 @@ export default function AdminDashboard({
   onDeleteTicket,
   onAssignAgent,
   onAutoAssignAll,
+  onToggleAgentStatus,
   apiBase
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingTicket, setEditingTicket] = React.useState(null);
+
+  const handleToggleAgent = async (agentId, currentStatus, e) => {
+    e.stopPropagation();
+    if (onToggleAgentStatus) {
+      onToggleAgentStatus(agentId, currentStatus);
+    } else {
+      try {
+        const nextStatus = currentStatus === 'offline' ? 'online' : 'offline';
+        const root = apiBase ? apiBase.replace(/\/tickets$/, '/agents') : '/api/agents';
+        await fetch(`${root}/${agentId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: nextStatus })
+        });
+        if (onRefresh) onRefresh();
+      } catch (err) {
+        console.error('Failed to toggle status:', err);
+      }
+    }
+  };
 
   // Group tickets by status for Kanban
   const kanbanGrouped = useMemo(() => {
@@ -74,42 +95,66 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Agents Roster Bar
+      {/* Agents Roster Bar with Online / Offline Availability Indicators */}
       <div className="agents-roster-bar">
         <div className="roster-title">
           <Shield size={16} color="#4f46e5" />
-          <span>Support Agents Team & Active Load:</span>
+          <span>Support Agents ({agents.filter(a => a.status !== 'offline').length} Online / {agents.length} Total):</span>
         </div>
         <div className="agents-roster-list">
-          {agents.map((agent) => (
-            <div
-              key={agent.id}
-              className={`roster-pill ${agentFilter === String(agent.id) ? 'active' : ''}`}
-              onClick={() => setAgentFilter(agentFilter === String(agent.id) ? 'all' : String(agent.id))}
-              title={`Click to filter by ${agent.name}. Active load: ${agent.active_load || 0} tickets`}
-            >
-              <div className="roster-avatar" style={{ backgroundColor: agent.avatar_color || '#4f46e5' }}>
-                {agent.name.split(' ').map((n) => n[0]).join('')}
+          {agents.map((agent) => {
+            const isOnline = agent.status !== 'offline';
+            return (
+              <div
+                key={agent.id}
+                className={`roster-pill ${agentFilter === String(agent.id) ? 'active' : ''} ${!isOnline ? 'roster-pill-offline' : ''}`}
+                onClick={() => setAgentFilter(agentFilter === String(agent.id) ? 'all' : String(agent.id))}
+                title={`Click to filter tickets by ${agent.name}. Status: ${isOnline ? 'Online' : 'Offline'}. Active load: ${agent.active_load || 0} tickets`}
+              >
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div className="roster-avatar" style={{ backgroundColor: agent.avatar_color || '#4f46e5' }}>
+                    {agent.name.split(' ').map((n) => n[0]).join('')}
+                  </div>
+                  <span
+                    className={`status-indicator-dot ${isOnline ? 'online' : 'offline'}`}
+                    title={`${agent.name} is ${isOnline ? 'online' : 'offline'}`}
+                  />
+                </div>
+                <div className="roster-details">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span className="roster-name">{agent.name}</span>
+                    <button
+                      type="button"
+                      className={`agent-status-badge ${isOnline ? 'badge-online' : 'badge-offline'}`}
+                      onClick={(e) => handleToggleAgent(agent.id, agent.status, e)}
+                      title={`Click to switch ${agent.name} ${isOnline ? 'Offline' : 'Online'}`}
+                    >
+                      <span className={`status-dot-mini ${isOnline ? 'online' : 'offline'}`} />
+                      {isOnline ? 'Online' : 'Offline'}
+                    </button>
+                  </div>
+                  <span className="roster-role">
+                    {agent.department} • <strong>{agent.active_load || 0} active</strong>
+                  </span>
+                </div>
+                <span className="roster-count" title={`${agent.total_tickets || 0} total tickets`}>
+                  {agent.total_tickets || 0}
+                </span>
               </div>
-              <div className="roster-details">
-                <span className="roster-name">{agent.name}</span>
-                <span className="roster-role">{agent.department} • <strong>{agent.active_load || 0} active</strong></span>
-              </div>
-              <span className="roster-count">{agent.total_tickets || 0}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {stats.unassigned > 0 && onAutoAssignAll && (
           <button
             className="btn btn-primary btn-sm"
             onClick={onAutoAssignAll}
-            title="Auto-assign unassigned tickets to the least loaded agents"
+            title="Auto-assign unassigned tickets to the least loaded available agents"
             style={{ marginLeft: 'auto', background: '#059669', borderColor: '#059669' }}
           >
             <span>⚡ Auto-Assign ({stats.unassigned})</span>
           </button>
         )}
-      </div> */}
+      </div>
 
       {/* Stats Summary Cards */}
       <div className="stats-grid">
@@ -256,7 +301,7 @@ export default function AdminDashboard({
                         className={`filter-select badge badge-status-${t.status}`}
                         value={t.status}
                         onChange={(e) => onStatusChange(t.id, e.target.value)}
-                        style={{ cursor: 'pointer', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                        style={{ cursor: 'pointer', padding: '0.2rem 1.6rem 0.2rem 0.5rem', fontSize: '0.75rem' }}
                       >
                         <option value="open">Open</option>
                         <option value="in_progress">In Progress</option>
@@ -273,13 +318,13 @@ export default function AdminDashboard({
                           const val = e.target.value;
                           onAssignAgent(t.id, val === 'auto' ? 'auto' : val ? Number(val) : null);
                         }}
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px' }}
+                        style={{ padding: '0.25rem 1.8rem 0.25rem 0.6rem', fontSize: '0.8rem', borderRadius: '6px' }}
                       >
                         <option value="">Unassigned</option>
                         <option value="auto">⚡ Auto-Assign (Least Loaded)</option>
                         {agents.map((a) => (
                           <option key={a.id} value={a.id}>
-                            {a.name} ({a.active_load || 0} active)
+                            {a.name} [{a.status === 'offline' ? 'Offline' : 'Online'}] ({a.active_load || 0} active)
                           </option>
                         ))}
                       </select>

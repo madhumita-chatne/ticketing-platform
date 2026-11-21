@@ -147,7 +147,7 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
                   className="filter-select"
                   style={{
                     width: '100%',
-                    padding: '0.65rem 0.85rem',
+                    padding: '0.65rem 2.25rem 0.65rem 0.85rem',
                     fontSize: '0.88rem',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
@@ -193,10 +193,10 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
             <button
               type="submit"
               className="btn btn-primary btn-block"
-              style={{ backgroundColor: roleColor, borderColor: roleColor, marginTop: '1.2rem' }}
+              style={{ backgroundColor: roleColor, borderColor: roleColor, marginTop: '1.2rem' , }}
               disabled={loading}
             >
-              {loading ? 'Authenticating...' : `Sign In to ${roleTitle}`}
+              {loading ? 'Authenticating...' : `Sign In`}
             </button>
           </form>
 
