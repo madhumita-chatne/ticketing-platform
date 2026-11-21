@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getUrgentTimerLabel } from '../utils.js';
 import { 
   Headphones, 
   CheckCircle2, 
@@ -28,6 +29,12 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // View mode: default to 'list' view as requested
   const [viewMode, setViewMode] = useState('list');
@@ -393,6 +400,12 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                     </td>
                     <td>
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                      {getUrgentTimerLabel(t, currentTime) && (
+                        <div className={`urgent-overdue-badge ${getUrgentTimerLabel(t, currentTime).type === 'countdown' ? 'urgent-countdown-badge' : ''}`} style={{ marginTop: '0.35rem' }}>
+                          <Clock size={11} />
+                          <span>{getUrgentTimerLabel(t, currentTime).text}</span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={`badge badge-status-${t.status}`}>
@@ -460,6 +473,13 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                   </div>
                 </div>
 
+                {getUrgentTimerLabel(t, currentTime) && (
+                  <div className={`urgent-overdue-badge ${getUrgentTimerLabel(t, currentTime).type === 'countdown' ? 'urgent-countdown-badge' : ''}`} style={{ marginBottom: '0.75rem' }}>
+                    <Clock size={12} />
+                    <span>{getUrgentTimerLabel(t, currentTime).text}</span>
+                  </div>
+                )}
+
                 <h3 className="complaint-subject">{t.title || t.subject}</h3>
                 <p className="complaint-concern">{t.description || 'No description provided.'}</p>
 
@@ -500,6 +520,12 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                   <span className={`badge badge-priority-${ticketDetails?.priority || activeTicket.priority}`}>
                     {ticketDetails?.priority || activeTicket.priority}
                   </span>
+                  {getUrgentTimerLabel(ticketDetails || activeTicket, currentTime) && (
+                    <span className={`urgent-overdue-badge ${getUrgentTimerLabel(ticketDetails || activeTicket, currentTime).type === 'countdown' ? 'urgent-countdown-badge' : ''}`}>
+                      <Clock size={12} />
+                      {getUrgentTimerLabel(ticketDetails || activeTicket, currentTime).text}
+                    </span>
+                  )}
                   <span className="ticket-category">{ticketDetails?.category || activeTicket.category}</span>
                 </div>
                 <h3>{ticketDetails?.title || ticketDetails?.subject || activeTicket.title}</h3>

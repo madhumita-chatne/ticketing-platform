@@ -45,6 +45,7 @@ export function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       due_at DATETIME,
+      urgent_started_at DATETIME,
       FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL
     );
 
@@ -73,13 +74,25 @@ export function initDatabase() {
   if (!ticketCols.includes('due_at')) {
     db.exec("ALTER TABLE tickets ADD COLUMN due_at DATETIME");
   }
+  if (!ticketCols.includes('urgent_started_at')) {
+    db.exec("ALTER TABLE tickets ADD COLUMN urgent_started_at DATETIME");
+  }
 
   const ticketsWithoutDueDate = db.prepare(
-    'SELECT id, created_at, priority FROM tickets WHERE due_at IS NULL'
+    'SELECT id, created_at, priority, agent_id, assignee FROM tickets WHERE due_at IS NULL'
   ).all();
   const setDueDate = db.prepare('UPDATE tickets SET due_at = ? WHERE id = ?');
   for (const ticket of ticketsWithoutDueDate) {
-    setDueDate.run(calculateDueAt(ticket.created_at, ticket.priority), ticket.id);
+    const assigned = ticket.agent_id || (ticket.assignee && ticket.assignee !== 'Unassigned');
+    if (ticket.priority === 'urgent') {
+      if (assigned) {
+        const startedAt = new Date();
+        db.prepare('UPDATE tickets SET urgent_started_at = ?, due_at = ? WHERE id = ?')
+          .run(startedAt.toISOString(), calculateDueAt(startedAt, 'urgent'), ticket.id);
+      }
+    } else {
+      setDueDate.run(calculateDueAt(ticket.created_at, ticket.priority), ticket.id);
+    }
   }
 
   // Migrate comments table if author_role is missing

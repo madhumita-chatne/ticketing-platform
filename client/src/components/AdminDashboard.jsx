@@ -4,7 +4,7 @@ import StatCard from './StatCard.jsx';
 import FilterBar from './FilterBar.jsx';
 import TicketCard from './TicketCard.jsx';
 import TicketModal from './TicketModal.jsx';
-import { formatTicketDueDate } from '../utils.js';
+import { formatTicketDueDate, getUrgentOverdueLabel } from '../utils.js';
 import { Layers, Clock, CheckCircle, CheckCheck, Inbox, AlertTriangle, UserCheck, Shield } from 'lucide-react';
 
 const KANBAN_COLUMNS = [
@@ -42,6 +42,12 @@ export default function AdminDashboard({
 }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingTicket, setEditingTicket] = React.useState(null);
+  const [currentTime, setCurrentTime] = React.useState(() => new Date());
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Group tickets by status for Kanban
   const kanbanGrouped = useMemo(() => {
@@ -191,6 +197,7 @@ export default function AdminDashboard({
                       key={ticket.id}
                       ticket={ticket}
                       agents={agents}
+                      currentTime={currentTime}
                       onEdit={(t) => {
                         setEditingTicket(t);
                         setIsModalOpen(true);
@@ -255,6 +262,12 @@ export default function AdminDashboard({
                     </td>
                     <td className={t.priority === 'urgent' ? 'urgent-ticket-due' : ''} style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                       {formatTicketDueDate(t)}
+                      {getUrgentOverdueLabel(t, currentTime) && (
+                        <div className="urgent-overdue-badge" style={{ marginTop: '0.25rem' }}>
+                          <Clock size={11} />
+                          <span>{getUrgentOverdueLabel(t, currentTime)}</span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <select

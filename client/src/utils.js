@@ -36,3 +36,60 @@ export function formatTicketDueDate(ticket) {
     minute: '2-digit'
   });
 }
+
+export function getUrgentOverdueLabel(ticket, now = new Date()) {
+  if (
+    ticket?.priority !== 'urgent'
+    || ['resolved', 'closed'].includes(ticket.status)
+    || (!ticket.agent_id && (!ticket.assignee || ticket.assignee === 'Unassigned'))
+  ) {
+    return null;
+  }
+
+  const due = getTicketDueAt(ticket);
+  if (!due || due.getTime() >= now.getTime()) return null;
+
+  const overdueMinutes = Math.max(1, Math.floor((now.getTime() - due.getTime()) / 60000));
+  const hours = Math.floor(overdueMinutes / 60);
+  const minutes = overdueMinutes % 60;
+
+  if (hours > 0) {
+    return `Overdue ${hours}h${minutes ? ` ${minutes}m` : ''}`;
+  }
+  return `Overdue ${minutes}m`;
+}
+
+export function getUrgentTimerLabel(ticket, now = new Date()) {
+  if (
+    ticket?.priority !== 'urgent'
+    || ['resolved', 'closed'].includes(ticket.status)
+    || (!ticket.agent_id && (!ticket.assignee || ticket.assignee === 'Unassigned'))
+  ) {
+    return null;
+  }
+
+  const due = getTicketDueAt(ticket);
+  if (!due) return null;
+
+  const differenceMinutes = Math.ceil((due.getTime() - now.getTime()) / 60000);
+  if (differenceMinutes <= 0) {
+    const overdueMinutes = Math.max(1, Math.abs(differenceMinutes));
+    const hours = Math.floor(overdueMinutes / 60);
+    const minutes = overdueMinutes % 60;
+    return {
+      type: 'overdue',
+      text: hours > 0
+        ? `Overdue ${hours}h${minutes ? ` ${minutes}m` : ''}`
+        : `Overdue ${minutes}m`
+    };
+  }
+
+  const hours = Math.floor(differenceMinutes / 60);
+  const minutes = differenceMinutes % 60;
+  return {
+    type: 'countdown',
+    text: hours > 0
+      ? `Time left ${hours}h${minutes ? ` ${minutes}m` : ''}`
+      : `Time left ${minutes}m`
+  };
+}
