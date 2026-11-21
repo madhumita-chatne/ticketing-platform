@@ -109,9 +109,148 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
-## 🔮 Future Prompts Log Register
+### Prompt #7: Separate Paths for 3 Screens, Consumer Website & Basic Auth Protection
+- **Date & Time**: `2026-11-21 12:48:57 +05:30`
+- **User Prompt**:
+  > *"the 3 kinds of screens - the user the admin and the agent, lets create seperate paths of the frontnend application. the user screen should be like a website with a raise a concern button. the agent and the admin screen will have a basic auth with common password ."*
+- **Intent**: Separate the 3 screens into dedicated URL paths (`/` for customer website, `/admin` for admin portal, `/agent` for agent workspace), transform the user screen into a consumer-facing website with a prominent "Raise a Concern" button, and gate the Admin and Agent screens behind a clean Basic Auth barrier using a common password (`admin123`).
+- **Key Modules Affected**:
+  - Backend: [`server/src/routes/auth.js`](file:///Users/madhumita/ticketing-system/server/src/routes/auth.js), [`server/src/index.js`](file:///Users/madhumita/ticketing-system/server/src/index.js), [`server/.env`](file:///Users/madhumita/ticketing-system/server/.env)
+  - Frontend: [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Backend**:
+    - Created [`server/src/routes/auth.js`](file:///Users/madhumita/ticketing-system/server/src/routes/auth.js) exposing `POST /api/auth/verify` to validate the common password.
+    - Set `COMMON_PASSWORD=admin123` in [`server/.env`](file:///Users/madhumita/ticketing-system/server/.env) and mounted route in Express.
+  - **Path-Based Routing**:
+    - Configured client router in [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx) reading `window.location.pathname` with pushState and hash fallback:
+      - `/` or `/user`: Public Consumer Website
+      - `/admin`: Admin Dashboard (Auth Protected)
+      - `/agent`: Agent Screen (Auth Protected)
+  - **Basic Auth Gate ([AuthGate.jsx](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx))**:
+    - Built authentication shield requiring the common password (`admin123`).
+    - Integrated show/hide password toggle, helper hint, and session persistence via `sessionStorage`.
+    - Added an active authenticated session header with quick-switch links and a "Log Out" button.
+  - **Consumer Website ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Built a public support website with sticky navigation bar, "Raise a Concern" high-contrast CTA button, hero section with trust metrics, "How it Works" 3-step grid, live concern tracker with conversation drawer, FAQ section, and staff footer links.
+  - **Verification**:
+    - Verified backend auth endpoint with node script (valid and invalid passwords).
+    - Verified Vite production build (`npm --prefix client run build`) with zero errors.
+- **Status**: ✅ Completed successfully.
 
-*Use this section to record any new prompts given in future sessions. Fill out the template below for each new task.*
+---
+
+### Prompt #8: User Website Simplification & Element Cleanup
+- **Date & Time**: `2026-11-21 13:00:17 +05:30`
+- **User Prompt**:
+  > *"the user screen showuld not see staff/agent button. remove Customer Support Tracker from the user screen . remove How It Works Track Concern FAQ. Also remove real time Real-Time text fromt eh screen. remove the raise concern button from teh header"*
+- **Intent**: Clean up and simplify the public customer website (`/`): remove all staff/agent navigation buttons, remove "Customer Support Tracker", remove "How It Works", "Track Concern", and "FAQ" sections, remove all occurrences of the phrase "Real-Time" / "real time", and remove the "Raise a Concern" button from the header navigation bar while preserving the prominent primary "Raise a Concern" button in the hero section.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Removed the staff/agent access dropdown from the header and footer in `UserWebsite.jsx`.
+  - Removed the "Raise a Concern" button from the header navbar; retained the hero CTA button.
+  - Removed the "How It Works", "Customer Support Tracker", and "FAQ" sections along with their navbar links.
+  - Replaced all instances of "Real-Time" with clean terminology ("Direct Support", "Direct 2-way communication").
+  - Verified with case-insensitive grep that no occurrences of "real time", "tracker", "faq", "how it works", or "staff" remain on the user screen.
+  - Confirmed clean production build (`npm --prefix client run build`).
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #9: Remove Admin Dashboard Access from Agent Screen
+- **Date & Time**: `2026-11-21 13:04:35 +05:30`
+- **User Prompt**:
+  > *"agent id should not have admin dashboard button"*
+- **Intent**: Ensure that the Agent Screen (`/agent`) does not display any buttons, links, or navigation options leading to the Admin Dashboard.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`client/src/components/AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - In `AuthGate.jsx`, restricted the "Admin Dashboard" session button so it is completely hidden when authenticated as an agent (only visible to admin sessions).
+  - In `AuthGate.jsx`, removed the "Admin Portal" link from the agent login footer.
+  - In `AgentScreen.jsx`, updated empty state copy to remove references to the Admin Dashboard.
+  - Verified that the Agent Screen navigation is strictly limited to their own workspace, "Public Website", and "Log Out".
+  - Verified clean production build (`npm --prefix client run build`).
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #10: Agent Login Selection, Hidden Password, List View Default, Sorting/Filtering, Rebranding to Homepage, Admin New Ticket Removal & Lifecycle Comments
+- **Date & Time**: `2026-11-21 13:12:45 +05:30`
+- **User Prompt**:
+  > *"for agent workspace login ask for which agent we want to login and then the common password. the common password should not be visible on the screen. no switch Switch Agent View as the agen will be logged in. Show list view in the Tickets Assigned to section instead of the curernt card view - give options for the agent to select which kind of view they want. Also add sorting filtering of these issues based on priority, timestamp. Instead of public website button - call it homepage. Admin view doesnt need new ticket button. On reassigning of the ticket, the user should be shown a comment. same with when the status changes"*
+- **Intent**: Agent workspace login requires selecting agent profile + hidden password, remove agent switcher, default list view with cards toggle, sort and filter tickets, rename all public website links to "Homepage", remove new ticket creation from Admin view, and auto-insert lifecycle comments upon ticket reassignment and status changes.
+- **Key Modules Affected**:
+  - Backend: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Frontend: [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`client/src/components/AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx), [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/Header.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/Header.jsx), [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Added agent profile selector on `/agent` login and hid all password hints and default password text.
+  - Bound AgentScreen to logged-in agent and removed agent switcher dropdown.
+  - Set default view in AgentScreen to List view with toggle to Cards view.
+  - Added sorting (timestamp, priority) and priority filtering.
+  - Renamed "Public Website" to "Homepage" everywhere.
+  - Removed "New Ticket" button from Admin view.
+  - Added automatic lifecycle comments in backend when status changes or ticket is reassigned.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #11: Add Button on User Screen to Track Created Tickets
+- **Date & Time**: `2026-11-21 13:53:18 +05:30`
+- **User Prompt**:
+  > *"add the button on the user screen to track all the tickets that the user has created"*
+- **Intent**: Add an intuitive button on the customer-facing user screen (Homepage) enabling users to view and track all concerns and tickets that they have created, inspect current statuses, see assigned support specialists, and access full discussion threads.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Backend: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Added `ids` query parameter support in `GET /api/tickets` to allow querying a specific list of ticket IDs.
+  - Added prominent **"Track All My Tickets"** buttons in both the Hero section and top Navbar.
+  - Persisted created tickets in `localStorage` (`ticketflow_my_ticket_ids`).
+  - Built a comprehensive tracking modal with search, status filters, email lookup, and quick link to discussion thread.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #12: Comprehensive Validation for Raising Tickets
+- **Date & Time**: `2026-11-21 13:58:20 +05:30`
+- **User Prompt**:
+  > *"add the validation while rasing the tickets"*
+- **Intent**: Add robust, multi-layer validation (both frontend and backend) when raising tickets, providing instant visual feedback, inline field errors, character counts, and preventing invalid submissions.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Backend: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Frontend Validation ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - **Subject**: Required, minimum 5 characters, maximum 150 characters. Dynamic character count counter (`{length}/150`).
+    - **Description**: Required, minimum 15 characters, maximum 3000 characters. Dynamic character count counter (`{length}/3000`).
+    - **Customer Name**: Required, minimum 2 characters, maximum 80 characters.
+    - **Customer Email**: Required, RFC 5322 regex validation (`name@example.com`).
+    - **Real-time On-Blur & On-Change Feedback**: Visual `input-error` red borders and inline `<span className="field-error-text">` with `<AlertCircle />` error icons directly below each invalid input.
+    - **Form-Level Safety**: Prevents network request dispatch when any validation constraint is unmet, displaying a clear summary error banner.
+  - **Backend Validation ([server/src/routes/tickets.js](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js))**:
+    - In `POST /api/tickets`, validates:
+      - Subject: Non-empty, 5 to 150 characters (400 Bad Request on failure).
+      - Description: Non-empty, 15 to 3000 characters (400 Bad Request on failure).
+      - Customer Name: Minimum 2 characters if provided (400 Bad Request on failure).
+      - Customer Email: Regex format check if provided (400 Bad Request on failure).
+      - Category: Whitelist validation against `['Complaint', 'Billing', 'Technical', 'Product', 'General']`.
+      - Priority: Whitelist validation against `['low', 'medium', 'high', 'urgent']`.
+      - Status: Whitelist validation against `['open', 'in_progress', 'resolved', 'closed']`.
+  - **Styling ([client/src/index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
+    - Added styles for `.input-error`, `.field-error-text`, `.field-char-count`, and `.form-label-row`.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
+## 🔮 Future Prompts Log Register
 
 ```markdown
 ### Prompt #<NUMBER>: <BRIEF TITLE>

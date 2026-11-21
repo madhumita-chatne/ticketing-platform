@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import PortalNav from './components/PortalNav.jsx';
-import CustomerPortal from './components/CustomerPortal.jsx';
+import UserWebsite from './components/UserWebsite.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import AgentScreen from './components/AgentScreen.jsx';
+import AuthGate from './components/AuthGate.jsx';
 
 const API_ROOT = typeof window !== 'undefined' && window.location.port === '5173'
   ? 'http://localhost:5001/api'
@@ -11,21 +11,27 @@ const API_ROOT = typeof window !== 'undefined' && window.location.port === '5173
 const API_TICKETS = `${API_ROOT}/tickets`;
 const API_AGENTS = `${API_ROOT}/agents`;
 
-export default function App() {
-  // Read hash from URL to determine initial portal: '#customer', '#admin', or '#agent'
-  const getInitialPortal = () => {
-    const hash = window.location.hash.replace('#', '').toLowerCase();
-    if (['customer', 'admin', 'agent'].includes(hash)) {
-      return hash;
-    }
-    return 'customer'; // Default to customer-facing portal
-  };
+// Helper: Normalize current route from pathname or hash
+function resolveCurrentPath() {
+  if (typeof window === 'undefined') return '/';
+  
+  const pathname = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+  const hash = window.location.hash.toLowerCase().replace('#', '').replace(/\/$/, '');
 
-  const [activePortal, setActivePortal] = useState(getInitialPortal);
+  if (pathname === '/admin' || hash === 'admin') return '/admin';
+  if (pathname === '/agent' || hash === 'agent') return '/agent';
+  if (pathname === '/user' || hash === 'user' || hash === 'customer') return '/';
+
+  return pathname;
+}
+
+export default function App() {
+  const [currentPath, setCurrentPath] = useState(resolveCurrentPath);
   const [agents, setAgents] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
+    unassigned: 0,
     byStatus: { open: 0, in_progress: 0, resolved: 0, closed: 0 },
     byPriority: { low: 0, medium: 0, high: 0, urgent: 0 }
   });
@@ -40,25 +46,31 @@ export default function App() {
   const [agentFilter, setAgentFilter] = useState('all');
   const [viewMode, setViewMode] = useState('kanban');
 
-  // Handle portal tab selection & hash sync
-  const handleSelectPortal = (portalId) => {
-    setActivePortal(portalId);
-    window.location.hash = portalId;
+  // Navigation handler
+  const navigateTo = (path) => {
+    setCurrentPath(path);
+    if (window.history.pushState) {
+      window.history.pushState(null, '', path);
+    } else {
+      window.location.hash = path.replace('/', '');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Listen to hash changes (back/forward browser buttons or direct URL change)
+  // Listen to browser forward/backward navigation
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['customer', 'admin', 'agent'].includes(hash)) {
-        setActivePortal(hash);
-      }
+    const handlePopState = () => {
+      setCurrentPath(resolveCurrentPath());
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
   }, []);
 
-  // Fetch agents roster
+  // Fetch agents roster with real-time active workload
   const fetchAgents = async () => {
     try {
       const res = await fetch(API_AGENTS);
@@ -213,68 +225,68 @@ export default function App() {
     }
   };
 
+  // 1. ADMIN PATH: /admin (Protected by Basic Auth)
+  if (currentPath === '/admin') {
+    return (
+      <AuthGate role="admin" onNavigate={navigateTo} apiRoot={API_ROOT}>
+        <div className="app-container">
+          <AdminDashboard
+            tickets={tickets}
+            stats={stats}
+            agents={agents}
+            loading={loading}
+            errorMessage={errorMessage}
+            search={search}
+            setSearch={setSearch}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            priorityFilter={priorityFilter}
+            setPriorityFilter={setPriorityFilter}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            agentFilter={agentFilter}
+            setAgentFilter={setAgentFilter}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            onRefresh={() => {
+              fetchTicketsAndStats();
+              fetchAgents();
+            }}
+            onSaveTicket={handleSaveTicket}
+            onStatusChange={handleStatusChange}
+            onDeleteTicket={handleDeleteTicket}
+            onAssignAgent={handleAssignAgent}
+            onAutoAssignAll={handleAutoAssignAll}
+            apiBase={API_TICKETS}
+          />
+        </div>
+      </AuthGate>
+    );
+  }
+
+  // 2. AGENT PATH: /agent (Protected by Basic Auth)
+  if (currentPath === '/agent') {
+    return (
+      <AuthGate role="agent" onNavigate={navigateTo} apiRoot={API_ROOT} agents={agents}>
+        <div className="app-container">
+          <AgentScreen
+            apiBase={API_TICKETS}
+            agents={agents}
+            onTicketUpdated={() => {
+              fetchTicketsAndStats();
+              fetchAgents();
+            }}
+          />
+        </div>
+      </AuthGate>
+    );
+  }
+
+  // 3. USER WEBSITE PATH: / (Public Website with "Raise a Concern" button)
   return (
-    <div className="app-container">
-      {/* Top Multi-App / Portal Switcher Bar */}
-      <PortalNav
-        activePortal={activePortal}
-        onSelectPortal={handleSelectPortal}
-        ticketCounts={{ total: stats.total }}
-      />
-
-      {/* Render Selected Application View */}
-      {activePortal === 'customer' && (
-        <CustomerPortal
-          apiBase={API_TICKETS}
-          onTicketCreated={() => {
-            fetchTicketsAndStats();
-            fetchAgents();
-          }}
-        />
-      )}
-
-      {activePortal === 'admin' && (
-        <AdminDashboard
-          tickets={tickets}
-          stats={stats}
-          agents={agents}
-          loading={loading}
-          errorMessage={errorMessage}
-          search={search}
-          setSearch={setSearch}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          priorityFilter={priorityFilter}
-          setPriorityFilter={setPriorityFilter}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          agentFilter={agentFilter}
-          setAgentFilter={setAgentFilter}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          onRefresh={() => {
-            fetchTicketsAndStats();
-            fetchAgents();
-          }}
-          onSaveTicket={handleSaveTicket}
-          onStatusChange={handleStatusChange}
-          onDeleteTicket={handleDeleteTicket}
-          onAssignAgent={handleAssignAgent}
-          onAutoAssignAll={handleAutoAssignAll}
-          apiBase={API_TICKETS}
-        />
-      )}
-
-      {activePortal === 'agent' && (
-        <AgentScreen
-          apiBase={API_TICKETS}
-          agents={agents}
-          onTicketUpdated={() => {
-            fetchTicketsAndStats();
-            fetchAgents();
-          }}
-        />
-      )}
-    </div>
+    <UserWebsite
+      apiBase={API_TICKETS}
+      onNavigate={navigateTo}
+    />
   );
 }

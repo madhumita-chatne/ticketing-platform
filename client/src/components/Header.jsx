@@ -25,10 +25,12 @@ export default function Header({ onNewTicket, onRefresh, loading }) {
           <span>Refresh</span>
         </button>
 
-        <button className="btn btn-primary" onClick={onNewTicket}>
-          <Plus size={18} />
-          <span>New Ticket</span>
-        </button>
+        {onNewTicket && (
+          <button className="btn btn-primary" onClick={onNewTicket}>
+            <Plus size={18} />
+            <span>New Ticket</span>
+          </button>
+        )}
       </div>
     </header>
   );

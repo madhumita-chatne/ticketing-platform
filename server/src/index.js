@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { initDatabase } from './db.js';
 import ticketsRouter from './routes/tickets.js';
 import agentsRouter from './routes/agents.js';
+import authRouter from './routes/auth.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 // API Routes
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/agents', agentsRouter);
+app.use('/api/auth', authRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

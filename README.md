@@ -67,16 +67,17 @@ CREATE TABLE comments (
 
 ---
 
-## 🚀 Running the Applications
+## 🚀 Dedicated Frontend Paths & Access
 
-### Frontend Application
-Open [http://localhost:5173](http://localhost:5173) in your browser. Use the top navigation bar or direct hash links to access each portal:
+Open [http://localhost:5173](http://localhost:5173) in your browser:
 
-| Portal | Direct Link | Purpose |
-|---|---|---|
-| **Customer Portal** | [http://localhost:5173/#customer](http://localhost:5173/#customer) | Raise complaints, track tickets, view agent comments |
-| **Admin Dashboard** | [http://localhost:5173/#admin](http://localhost:5173/#admin) | Kanban & Table view, assign tickets to 5 agents |
-| **Agent Screen** | [http://localhost:5173/#agent](http://localhost:5173/#agent) | Switch between agents, resolve tickets, add comments |
+| Portal | URL Path | Access & Authentication | Purpose |
+|---|---|---|---|
+| 🌐 **Customer Website** | [http://localhost:5173/](http://localhost:5173/) | **Public** (No Auth required) | Consumer website with **"Raise a Concern"** button & live tracking |
+| 🛡️ **Admin Dashboard** | [http://localhost:5173/admin](http://localhost:5173/admin) | **Basic Auth** (`admin123`) | Kanban, Table view, 5-agent workload balancer & auto-assign |
+| 🎧 **Agent Workspace** | [http://localhost:5173/agent](http://localhost:5173/agent) | **Basic Auth** (`admin123`) | Switch active agent, resolve tickets, and post customer replies |
+
+> **🔑 Common Password for Admin & Agent**: `admin123` (configured in `server/.env`)
 
 ### Backend API
 - **Base URL**: `http://localhost:5001`

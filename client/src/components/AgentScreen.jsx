@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Headphones, 
   CheckCircle2, 
@@ -6,7 +6,6 @@ import {
   MessageSquare, 
   Send, 
   User, 
-  AlertCircle, 
   Filter, 
   ArrowRight, 
   Check, 
@@ -14,15 +13,29 @@ import {
   X,
   Mail,
   Building,
-  Sparkles
+  Sparkles,
+  LayoutGrid,
+  List,
+  ArrowUpDown
 } from 'lucide-react';
 
 export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
-  // Currently active agent (defaults to first agent)
-  const [selectedAgentId, setSelectedAgentId] = useState(1);
+  // Currently active agent retrieved from the authenticated session
+  const [selectedAgentId] = useState(() => {
+    const saved = sessionStorage.getItem('ticketflow_logged_agent_id');
+    return saved ? Number(saved) : (agents[0]?.id || 1);
+  });
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // View mode: default to 'list' view as requested
+  const [viewMode, setViewMode] = useState('list');
+
+  // Filtering & Sorting
   const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('timestamp_desc');
 
   // Active ticket modal
   const [activeTicket, setActiveTicket] = useState(null);
@@ -34,7 +47,7 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentSuccess, setCommentSuccess] = useState(false);
 
-  // Fetch tickets assigned to the selected agent
+  // Fetch tickets assigned to the logged-in agent
   const fetchAgentTickets = async () => {
     if (!selectedAgentId) return;
     try {
@@ -143,11 +156,37 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
     }
   };
 
-  // Filter tickets by status
-  const filteredTickets = tickets.filter((t) => {
-    if (statusFilter === 'all') return true;
-    return t.status === statusFilter;
-  });
+  // Filter and sort tickets based on status, priority, and timestamp
+  const priorityOrder = {
+    urgent: 4,
+    high: 3,
+    medium: 2,
+    low: 1
+  };
+
+  const processedTickets = useMemo(() => {
+    return tickets
+      .filter((t) => {
+        if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+        if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'timestamp_desc') {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        if (sortBy === 'timestamp_asc') {
+          return new Date(a.created_at) - new Date(b.created_at);
+        }
+        if (sortBy === 'priority_desc') {
+          return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        }
+        if (sortBy === 'priority_asc') {
+          return (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
+        }
+        return 0;
+      });
+  }, [tickets, statusFilter, priorityFilter, sortBy]);
 
   // Calculate agent stats
   const stats = {
@@ -159,7 +198,7 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
 
   return (
     <div className="agent-screen">
-      {/* Agent Selector & Profile Card */}
+      {/* Agent Profile Banner (Fixed to Logged In Agent - No Switcher) */}
       <div className="agent-profile-banner">
         <div className="agent-profile-info">
           <div className="agent-avatar-large" style={{ backgroundColor: activeAgent?.avatar_color || '#059669' }}>
@@ -187,24 +226,19 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
           </div>
         </div>
 
-        {/* Switch Agent Dropdown */}
-        <div className="agent-switcher-box">
-          <label>Switch Agent View:</label>
-          <select
-            className="filter-select agent-select-dropdown"
-            value={selectedAgentId}
-            onChange={(e) => setSelectedAgentId(Number(e.target.value))}
-          >
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name} — {agent.department} ({agent.role})
-              </option>
-            ))}
-          </select>
+        {/* Logged In Info Badge */}
+        <div className="agent-session-info-badge">
+          <div className="agent-logged-tag">
+            <Check size={14} />
+            <span>Logged in as {activeAgent?.name?.split(' ')[0] || 'Agent'}</span>
+          </div>
+          <span className="agent-active-workload">
+            {stats.open + stats.inProgress} Active Ticket{(stats.open + stats.inProgress) === 1 ? '' : 's'}
+          </span>
         </div>
       </div>
 
-      {/* Agent Metric Cards */}
+      {/* Agent Metric Cards for Quick Status Filtering */}
       <div className="agent-metrics-row">
         <div
           className={`agent-metric-card ${statusFilter === 'all' ? 'active' : ''}`}
@@ -238,19 +272,78 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
 
       {/* Assigned Tickets Section */}
       <div className="customer-section">
-        <div className="customer-section-header">
+        <div className="customer-section-header" style={{ flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-start' }}>
           <div>
             <h3 className="section-title">
-              Tickets Assigned to {activeAgent?.name} ({filteredTickets.length})
+              Tickets Assigned to {activeAgent?.name} ({processedTickets.length})
             </h3>
             <p className="section-desc">
               Select a ticket to investigate, change resolution status, and send comments directly to the customer.
             </p>
           </div>
-          <button className="btn btn-secondary" onClick={fetchAgentTickets} disabled={loading}>
-            <RefreshCw size={15} className={loading ? 'spin' : ''} />
-            <span>Refresh</span>
-          </button>
+
+          {/* Controls: Filtering, Sorting, and View Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            {/* Priority Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Filter size={14} style={{ color: '#64748b' }} />
+              <select
+                className="filter-select"
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                title="Filter by priority"
+              >
+                <option value="all">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+
+            {/* Sorting Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <ArrowUpDown size={14} style={{ color: '#64748b' }} />
+              <select
+                className="filter-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                title="Sort tickets"
+              >
+                <option value="timestamp_desc">Date: Newest First</option>
+                <option value="timestamp_asc">Date: Oldest First</option>
+                <option value="priority_desc">Priority: Urgent First</option>
+                <option value="priority_asc">Priority: Low First</option>
+              </select>
+            </div>
+
+            {/* View Mode Toggle (List vs Card) */}
+            <div className="view-mode-toggle">
+              <button
+                type="button"
+                className={`btn-view-toggle ${viewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title="Switch to List View"
+              >
+                <List size={15} />
+                <span>List</span>
+              </button>
+              <button
+                type="button"
+                className={`btn-view-toggle ${viewMode === 'card' ? 'active' : ''}`}
+                onClick={() => setViewMode('card')}
+                title="Switch to Card View"
+              >
+                <LayoutGrid size={15} />
+                <span>Cards</span>
+              </button>
+            </div>
+
+            <button className="btn btn-secondary" onClick={fetchAgentTickets} disabled={loading} title="Refresh tickets">
+              <RefreshCw size={15} className={loading ? 'spin' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -258,19 +351,100 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
             <Clock size={32} className="spin" style={{ color: '#059669' }} />
             <p>Loading assigned tickets...</p>
           </div>
-        ) : filteredTickets.length === 0 ? (
+        ) : processedTickets.length === 0 ? (
           <div className="empty-state">
             <CheckCircle2 size={40} style={{ color: '#10b981' }} />
             <h3>No tickets in this view!</h3>
             <p>
-              {statusFilter === 'all'
-                ? `No tickets currently assigned to ${activeAgent?.name}. Admin can assign incoming tickets from the Admin Dashboard.`
-                : `No ${statusFilter.replace('_', ' ')} tickets for ${activeAgent?.name}.`}
+              {statusFilter === 'all' && priorityFilter === 'all'
+                ? `No tickets currently assigned to ${activeAgent?.name}. New tickets will appear here when assigned.`
+                : `No matching tickets found with current filter selections.`}
             </p>
           </div>
+        ) : viewMode === 'list' ? (
+          /* List / Table View (Default) */
+          <div className="table-container">
+            <table className="ticket-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '80px' }}>ID</th>
+                  <th>Concern & Details</th>
+                  <th style={{ width: '100px' }}>Priority</th>
+                  <th style={{ width: '120px' }}>Status</th>
+                  <th style={{ width: '160px' }}>Customer</th>
+                  <th style={{ width: '140px' }}>Logged At</th>
+                  <th style={{ width: '85px' }}>Replies</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processedTickets.map((t) => (
+                  <tr key={t.id} onClick={() => handleOpenTicket(t)} style={{ cursor: 'pointer' }}>
+                    <td>
+                      <span className="complaint-id" style={{ fontWeight: 700 }}>#{t.id}</span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+                        {t.title || t.subject}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '420px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {t.description || 'No description provided.'}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-status-${t.status}`}>
+                        {t.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem' }}>
+                        <User size={13} style={{ color: '#64748b' }} />
+                        <span style={{ fontWeight: 500 }}>{t.customer_name || 'Customer'}</span>
+                      </div>
+                      {t.customer_email && (
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t.customer_email}</div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Clock size={12} />
+                        <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        {new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="complaint-comments-badge" style={{ fontSize: '0.78rem' }}>
+                        <MessageSquare size={12} />
+                        <span>{t.comments_count || 0}</span>
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        style={{ background: '#059669', borderColor: '#059669', padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenTicket(t);
+                        }}
+                      >
+                        Open <ArrowRight size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
+          /* Card View */
           <div className="complaints-grid">
-            {filteredTickets.map((t) => (
+            {processedTickets.map((t) => (
               <div
                 key={t.id}
                 className="complaint-card agent-ticket-card"

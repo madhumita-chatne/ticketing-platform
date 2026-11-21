@@ -9,7 +9,9 @@ Welcome to the **TicketFlow Support & Complaint Tracking System** knowledge base
 2. [Database Schema & Data Model](#database-schema--data-model)
 3. [Backend Code Structure & API Reference](#backend-code-structure--api-reference)
    - [3.1 Intelligent Agent Auto-Assignment Algorithm](#31-⚖️-intelligent-agent-auto-assignment-algorithm)
-4. [Frontend Architecture & Portals](#frontend-architecture--portals)
+   - [3.2 Lifecycle Audit Comments (Status & Reassignment)](#32-📝-lifecycle-audit-comments-status--reassignment)
+   - [3.3 Ticket Creation Validation Rules](#33-🛡️-ticket-creation-validation-rules-frontend--backend)
+4. [Frontend Architecture & Dedicated Routes](#frontend-architecture--dedicated-routes)
 5. [End-to-End Execution Flows](#end-to-end-execution-flows)
 6. [Developer Cheatsheet & CLI Reference](#developer-cheatsheet--cli-reference)
 
@@ -17,17 +19,19 @@ Welcome to the **TicketFlow Support & Complaint Tracking System** knowledge base
 
 ## 1. System Architecture Overview
 
-TicketFlow is designed around a **Single-Backend, Multi-Portal** architecture. A single Node.js Express server manages an embedded SQLite database and concurrently serves **3 distinct application interfaces** through a modern React (Vite) client.
+TicketFlow is designed around a **Single-Backend, Multi-Portal** architecture. A single Node.js Express server manages an embedded SQLite database and concurrently serves **3 distinct application paths** through a modern React (Vite) client.
 
 ```
                               ┌───────────────────────────────────┐
                               │     React Client (Port 5173)      │
-                              │   URL Hash Routing Navigation     │
+                              │    Dedicated Browser Path Routing │
                               └─┬───────────────┬───────────────┬─┘
                                 │               │               │
             ┌───────────────────┴──┐     ┌──────┴──────┐     ┌──┴──────────────────┐
-            │   Customer Portal    │     │ Admin Board │     │    Agent Screen     │
-            │   (http://...#customer)│   │ (http://...#admin)│ (http://...#agent)  │
+            │       Homepage       │     │ Admin Portal│     │    Agent Screen     │
+            │      Path: /         │     │ Path: /admin│     │    Path: /agent     │
+            │  "Raise a Concern"   │     │ (Basic Auth)│     │ (Agent Pick + Auth) │
+            │  Consumer Website    │     │ [admin123]  │     │    [admin123]       │
             └───────────────────┬──┘     └──────┬──────┘     └──┬──────────────────┘
                                 │               │               │
                                 └───────────────┼───────────────┘
@@ -35,7 +39,7 @@ TicketFlow is designed around a **Single-Backend, Multi-Portal** architecture. A
                                                 ▼
                               ┌───────────────────────────────────┐
                               │    Node.js Express (Port 5001)    │
-                              │      /api/tickets & /api/agents   │
+                              │    /api/tickets, agents & auth    │
                               └─────────────────┬─────────────────┘
                                                 │ better-sqlite3 (WAL Mode)
                                                 ▼
@@ -107,9 +111,9 @@ The database file resides at [`server/database.sqlite`](file:///Users/madhumita/
 Upon startup, [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js) ensures the following 5 agents are seeded:
 1. **Sarah Chen** (`sarah.chen@support.com`) — *Technical Support Specialist*, Technical Support (`#4f46e5`)
 2. **Alex Kumar** (`alex.kumar@support.com`) — *Billing & Accounts Lead*, Billing & Accounts (`#0284c7`)
-3. **David Miller** (`david.miller@support.com`) — *Product Escalations Engineer*, Product Issues (`#7c3aed`)
-4. **Elena Rostova** (`elena.rostova@support.com`) — *Customer Success Manager*, VIP & Escalations (`#059669`)
-5. **Maya Lin** (`maya.lin@support.com`) — *General Support Specialist*, General Inquiries (`#d97706`)
+3. **David Miller** (`david.miller@support.com`) — *Product Escalations Engineer*, Product Escalations (`#7c3aed`)
+4. **Elena Rostova** (`elena.rostova@support.com`) — *Customer Success Manager*, Customer Success (`#059669`)
+5. **Maya Lin** (`maya.lin@support.com`) — *General Support Specialist*, General Support (`#d97706`)
 
 ---
 
@@ -120,15 +124,16 @@ All backend code lives in [`server/`](file:///Users/madhumita/ticketing-system/s
 ### Directory Map
 ```text
 server/
-├── .env                  # Port (5001), DATABASE_FILE, AUTO_SEED settings
+├── .env                  # Port (5001), DATABASE_FILE, AUTO_SEED settings, COMMON_PASSWORD
 ├── database.sqlite       # Main SQLite file
 ├── src/
 │   ├── index.js          # Express app entry, middleware & route mounting
 │   ├── db.js             # SQLite init, schema tables, migrations & agent seeding
 │   ├── clear-db.js       # Standalone script to truncate tickets & comments
 │   └── routes/
-│       ├── tickets.js    # CRUD, assignments, comments & metrics
-│       └── agents.js     # Agent roster & per-agent workload stats
+│       ├── tickets.js    # CRUD, assignments, comments, lifecycle audits & metrics
+│       ├── agents.js     # Agent roster & per-agent workload stats
+│       └── auth.js       # Common password verification
 ```
 
 ### Key Endpoints
@@ -138,14 +143,15 @@ server/
 | `GET` | `/api/health` | Health check and SQLite database status |
 | `GET` | `/api/agents` | List all 5 agents with assigned ticket statistics & real-time `active_load` |
 | `GET` | `/api/agents/:id` | Get details and ticket list for a specific agent |
-| `GET` | `/api/tickets` | Query tickets. Filters: `status`, `priority`, `category`, `agent_id`, `search`, `customer_email` |
+| `GET` | `/api/tickets` | Query tickets. Filters: `ids`, `status`, `priority`, `category`, `agent_id`, `search`, `customer_email`, `sortBy`, `order` |
 | `GET` | `/api/tickets/stats` | Aggregated metrics for status and priority counts |
 | `GET` | `/api/tickets/:id` | Get ticket with agent details and full comments thread |
 | `POST`| `/api/tickets` | Create ticket with **intelligent auto-assignment** to the least loaded agent |
-| `PATCH`| `/api/tickets/:id`| Update ticket properties (status, priority, assignee, agent_id) |
-| `POST`| `/api/tickets/:id/assign` | Manual assign ticket to a specific agent: `{ agent_id }` |
+| `PATCH`| `/api/tickets/:id`| Update ticket properties; automatically adds lifecycle audit comment on status or assignee change |
+| `POST`| `/api/tickets/:id/assign` | Manual assign ticket to a specific agent: `{ agent_id }`; logs reassignment audit comment |
 | `POST`| `/api/tickets/:id/auto-assign` | Auto-assign specific ticket to the least loaded agent |
 | `POST`| `/api/tickets/auto-assign-all` | Auto-assign all unassigned tickets to balance agent workloads |
+| `POST`| `/api/auth/verify` | Validate staff basic auth password for `/admin` & `/agent` |
 | `POST`| `/api/tickets/:id/comments` | Post comment: `{ author, author_role, content }` |
 | `DELETE`| `/api/tickets/:id` | Delete ticket and its associated comments |
 
@@ -183,57 +189,125 @@ LIMIT 1;
 2. **Tier 2 (Lowest Historical Load)**: If multiple agents have the same active load (e.g. 0 active tickets), breaks ties by picking whoever has handled fewer total lifetime tickets.
 3. **Tier 3 (Round-Robin ID)**: Ensures deterministic, round-robin assignment when all metrics are equal.
 
-### Immediate Customer Greeting
-Upon auto-assignment, the system automatically posts an initial acknowledgment comment from the assigned agent into the ticket's conversation thread:
-> *"Hello [Customer Name]! I am [Agent Name] from the [Department] team. Your concern has been automatically assigned to me based on current agent workload balancing. I am reviewing your request and will assist you shortly."*
+---
+
+## 3.2 📝 Lifecycle Audit Comments (Status & Reassignment)
+
+Whenever a ticket's status changes or it gets reassigned (whether via `PATCH /api/tickets/:id` or `POST /api/tickets/:id/assign`), the backend automatically inserts a permanent discussion comment into the ticket thread:
+- **Status Change**:
+  > *"Ticket status updated from '[old_status]' to '[new_status]'."*
+- **Reassignment**:
+  > *"Ticket reassigned to [Agent Name]."*
+
+These comments are saved under `author_role: 'agent'` and appear in real time on the customer's portal and the agent workspace, providing total transparency to the user.
 
 ---
 
-## 4. Frontend Architecture & Portals
+## 3.3 🛡️ Ticket Creation Validation Rules (Frontend & Backend)
 
-The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhumita/ticketing-system/client/).
+Both the React client and the Express backend enforce strict validation rules to guarantee data integrity and provide clear user feedback:
+
+| Field | Rules & Constraints | Error Message |
+| :--- | :--- | :--- |
+| **Subject / Title** | Required, 5 to 150 characters, trimmed | *"Subject must be at least 5 characters (min 5, max 150)."* |
+| **Description** | Required, 15 to 3000 characters, trimmed | *"Please provide at least 15 characters describing your concern."* |
+| **Customer Name** | Required, 2 to 80 characters | *"Your name is required (min 2 characters)."* |
+| **Customer Email** | Required, RFC 5322 regex (`name@domain.com`) | *"Please enter a valid email address."* |
+| **Category** | Allowed: `Complaint`, `Billing`, `Technical`, `Product`, `General` | *"Please select a valid category."* |
+| **Priority** | Allowed: `low`, `medium`, `high`, `urgent` | *"Please select a valid priority."* |
+
+### Interactive Client Validation Experience:
+- **Real-Time On-Blur**: Individual fields validate when the user tabs or clicks away.
+- **Visual Feedback**: Invalid inputs are outlined with red borders (`.input-error`) and show an error badge with an `<AlertCircle />` icon.
+- **Live Character Counters**: Displays live character counts (e.g., `12/150` for subject, `45/3000` for description).
+- **Submission Guard**: Blocks dispatching network requests if any validation constraint is unmet and surfaces a top-level summary banner.
+
+---
+
+## 4. Frontend Architecture & Dedicated Routes
+
+The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhumita/ticketing-system/client/). It implements a **dedicated path-based routing structure** where each screen serves its specific audience:
+
+### 1. 🌐 Homepage (`/` or `/user`)
+- **Component**: [`UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+- **Role**: Clean, focused consumer-facing website dedicated to concern intake and tracking.
+- **Features**:
+  - Clean Navigation bar with logo and a **"Track All My Tickets"** action button.
+  - Hero section featuring the primary **"Raise a Concern"** CTA button and secondary **"Track All My Tickets"** button.
+  - Value commitment cards (Fair Load Balancing, Dedicated Specialist, Direct Communication).
+  - **"Raise a Concern"** modal form with automated least-loaded agent routing; newly created ticket IDs are saved to browser `localStorage` for instant tracking.
+  - **"Track All Created Tickets"** modal:
+    - Lists all tickets created by the user with real-time status badges, priorities, assigned specialists, and response counts.
+    - Live search filter by ticket ID, subject, or keywords.
+    - Status filter dropdown (`all`, `open`, `in_progress`, `resolved`, `closed`).
+    - Email lookup bar to find tickets associated with any specific email address.
+  - Dedicated concern details and interactive communication modal allowing direct replies from the customer.
+  - Clean footer without staff portal links.
+
+### 2. 🛡️ Admin Portal (`/admin`) — *Basic Auth Protected*
+- **Component**: [`AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx) wrapped in [`AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx).
+- **Authentication**: Requires the common password.
+- **Clean Interface**: **No "New Ticket" button** is shown in the Admin view (all tickets originate directly from customer concerns on the Homepage).
+- **Features**:
+  - Active workload counters for all 5 support agents in the roster bar.
+  - Kanban board with drag/status columns (`Open`, `In Progress`, `Resolved`, `Closed`).
+  - Table view with inline agent assignment dropdowns (supports manual assignment or `⚡ Auto-Assign`).
+  - "Auto-Assign All Unassigned" button to rebalance unassigned tickets in one click.
+
+### 3. 🎧 Agent Workspace (`/agent`) — *Basic Auth Protected*
+- **Component**: [`AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx) wrapped in [`AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx).
+- **Login Flow**:
+  - Requires selecting which agent wants to log in from a dropdown (`Sarah Chen`, `Alex Kumar`, `David Miller`, `Elena Rostova`, `Maya Lin`).
+  - Requires the common password.
+  - **Password is completely hidden**: no password hints or code tags are displayed anywhere on screen.
+  - Remembers the logged-in agent in `sessionStorage` (`ticketflow_logged_agent_id`).
+- **No Agent Switcher**:
+  - The "Switch Agent View" dropdown is removed since the agent is actively authenticated into their own profile.
+  - Displays a clean "Logged in as [Agent]" badge.
+- **Assigned Tickets View**:
+  - **Default List (Table) View**: Displays tickets in a clean, high-density tabular view with ID, Concern preview, Priority, Status, Customer, Logged At, and Reply count.
+  - **View Toggle**: Agent can freely toggle between **List view** and **Cards view**.
+  - **Sorting**: Dropdown to sort by **Date: Newest First**, **Date: Oldest First**, **Priority: Urgent First**, or **Priority: Low First**.
+  - **Filtering**: Priority filter (`all`, `urgent`, `high`, `medium`, `low`) and status filter cards (`all`, `open`, `in_progress`, `resolved`).
+- **Ticket Investigation Drawer**:
+  - Status transitions (`In Progress`, `Resolved`, `Reopen`, `Close`).
+  - Comment composer: responses posted by agents immediately appear on the Homepage for the customer.
+- **Navigation**:
+  - Button to return to **Homepage** (no Admin Portal link).
 
 ### Component Hierarchy
 ```text
-App.jsx (Root coordinator, hash-routing & state sync)
-├── PortalNav.jsx (Top navigation bar switching Customer/Admin/Agent)
+App.jsx (Path router & global data sync)
+├── / (or /user) ────────> UserWebsite.jsx
+│                          ├── Clean Navbar (Brand only, no buttons)
+│                          ├── Hero Section with "Raise a Concern" CTA
+│                          ├── Service Commitment Cards
+│                          ├── "Raise a Concern" Modal Form
+│                          └── Public Website Footer
 │
-├── CustomerPortal.jsx (when #customer)
-│   ├── "Raise a Complaint" Modal Dialog
-│   ├── Complaints List & Tracking Grid
-│   └── Complaint Conversation Modal (Original concern + Agent comments + User reply box)
+├── /admin ──────────────> AuthGate.jsx (Admin basic auth)
+│                          └── AdminDashboard.jsx (No "New Ticket" button)
+│                              ├── Header (Refresh)
+│                              ├── Agents Roster Bar (Live active loads)
+│                              ├── StatCard (Total, Open, In Progress, Resolved)
+│                              ├── FilterBar (Search, Agent filter, Status, etc.)
+│                              └── Kanban & Table Views
 │
-├── AdminDashboard.jsx (when #admin)
-│   ├── Header.jsx (New ticket button, manual refresh)
-│   ├── Agents Roster Bar (5 active agents with ticket count badges)
-│   ├── StatCard.jsx (Total, Open, In Progress, Resolved counters)
-│   ├── FilterBar.jsx (Search, Agent filter, Status, Priority, Category, View toggle)
-│   ├── Kanban View / Table View
-│   │   └── TicketCard.jsx (With inline agent assignment select & comments pill)
-│   └── TicketModal.jsx (Create / Edit ticket & view internal discussion)
-│
-└── AgentScreen.jsx (when #agent)
-    ├── Agent Profile Banner (Active agent switcher dropdown & department badge)
-    ├── Agent Metrics Row (Assigned, Open, In Progress, Resolved)
-    ├── Filterable Assigned Tickets Grid
-    └── Ticket Investigation Drawer
-        ├── Quick Status Updater (In Progress, Resolved, Reopen, Close)
-        ├── Conversation History Thread
-        └── Agent Comment Box ("Post Response to Customer")
+└── /agent ──────────────> AuthGate.jsx (Agent Profile Selector + Hidden Password)
+                           └── AgentScreen.jsx (Bound to Logged-in Agent)
+                               ├── Agent Profile & Active Badge (No switcher)
+                               ├── Workload Metric Cards
+                               ├── View Controls (List / Cards toggle, Sort By, Priority filter)
+                               ├── Assigned Tickets View (Default: List/Table)
+                               └── Ticket Modal (Status updates & comment composer)
 ```
-
-### URL Hash Routing
-Navigation state is bidirectionally linked with `window.location.hash`:
-- [`http://localhost:5173/#customer`](http://localhost:5173/#customer) -> Customer Support Portal
-- [`http://localhost:5173/#admin`](http://localhost:5173/#admin) -> Admin Kanban & Table Dashboard
-- [`http://localhost:5173/#agent`](http://localhost:5173/#agent) -> Agent Workspace
 
 ---
 
 ## 5. End-to-End Execution Flows
 
-### Flow 1: Customer Raises a Complaint (with Auto-Assignment)
-1. **User Action**: On the Customer Portal, user clicks **"Raise a Complaint"**.
+### Flow 1: Customer Raises a Concern (with Auto-Assignment)
+1. **User Action**: On the Homepage (`/`), user clicks **"Raise a Concern"** in the Hero section.
 2. **Input Form**: User fills in **Subject** (`"Unable to download invoice"`), **Concern Details** (`"Getting 500 error on dashboard"`), Name (`"Emma Watson"`), Email (`"emma@example.com"`).
 3. **HTTP Request**: Frontend dispatches `POST /api/tickets` with:
    ```json
@@ -249,63 +323,21 @@ Navigation state is bidirectionally linked with `window.location.hash`:
    ```
 4. **Backend Processing**:
    - `getLeastLoadedAgent()` determines which of the 5 agents has the lowest active workload (e.g. **Sarah Chen** with `active_load: 0`).
-   - Executes:
-     ```sql
-     INSERT INTO tickets (title, description, customer_name, customer_email, status, assignee, agent_id)
-     VALUES (?, ?, ?, ?, 'open', 'Sarah Chen', 1);
-     
-     INSERT INTO comments (ticket_id, author, author_role, content)
-     VALUES (?, 'Sarah Chen', 'agent', 'Hello Emma Watson! I am Sarah Chen from the Technical Support team. Your concern has been automatically assigned to me based on current agent workload balancing. I am reviewing your request and will assist you shortly.');
-     ```
-5. **Instant Feedback**: The Customer Portal modal displays confirmation:
-   > *"Complaint #X Submitted & Auto-Assigned to Sarah Chen (Technical Support)!"*
-   The complaint immediately displays in the Customer Portal list with Sarah Chen assigned, and appears in the Admin Dashboard with an active workload indicator.
+   - Inserts ticket and creates initial acknowledgment comment.
+5. **Instant Feedback**: The modal displays confirmation:
+   > *"Concern #X Submitted & Auto-Assigned to Sarah Chen (Technical Support)!"*
+   The ticket appears immediately on Sarah Chen's Agent Screen in her List View.
 
 ---
 
-### Flow 2: Admin Assigns Complaint to Agent
-1. **User Action**: Admin opens [http://localhost:5173/#admin](http://localhost:5173/#admin).
-2. **Assignment Dropdown**: On the ticket's Kanban card or in the Table row, Admin selects **Alex Kumar** from the agent dropdown.
-3. **HTTP Request**: Frontend dispatches `POST /api/tickets/:id/assign` with `{ "agent_id": 2 }`.
-4. **Backend Processing**:
-   - Resolves Agent ID `2` to `"Alex Kumar"`.
-   - Executes:
-     ```sql
-     UPDATE tickets SET agent_id = 2, assignee = 'Alex Kumar', updated_at = CURRENT_TIMESTAMP WHERE id = ?;
-     ```
-5. **State Update**: Both the Admin view and the Agent Screen for Alex Kumar refresh to display the newly assigned ticket.
-
----
-
-### Flow 3: Agent Investigates & Posts a Comment
-1. **User Action**: Agent opens [http://localhost:5173/#agent](http://localhost:5173/#agent) and selects their profile (**Alex Kumar**).
-2. **Ticket Selection**: Agent clicks on Ticket `#ID`.
-3. **Status Update**: Agent clicks **"Mark In Progress"** (`PATCH /api/tickets/:id` `{ status: 'in_progress' }`).
-4. **Agent Comment**: In the comment composer, Alex types:
-   > *"Hello Emma, I investigated the error and fixed your billing permissions. Could you please try again?"*
-5. **HTTP Request**: Frontend dispatches `POST /api/tickets/:id/comments`:
-   ```json
-   {
-     "author": "Alex Kumar",
-     "author_role": "agent",
-     "content": "Hello Emma, I investigated the error and fixed your billing permissions. Could you please try again?"
-   }
-   ```
-6. **Backend Processing**:
-   ```sql
-   INSERT INTO comments (ticket_id, author, author_role, content) VALUES (?, 'Alex Kumar', 'agent', ?);
-   UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?;
-   ```
-
----
-
-### Flow 4: Customer Views Response & Replies
-1. **User Action**: Customer opens [http://localhost:5173/#customer](http://localhost:5173/#customer) and clicks their complaint.
-2. **Thread Display**: The conversation modal displays the original complaint followed by Alex's comment highlighted with a distinct **Agent badge** (`🎧 Agent: Alex Kumar`).
-3. **Customer Reply**: Customer inputs:
-   > *"Thank you Alex, the download works now!"*
-4. **HTTP Request**: Customer clicks **Send Reply** (`POST /api/tickets/:id/comments` with `author_role: 'customer'`).
-5. **Resolution**: Agent sees customer's reply on the Agent Screen and clicks **"Mark Resolved"**.
+### Flow 2: Ticket Status Update or Reassignment Lifecycle Comment
+1. **Action**: An agent marks a ticket as `"in_progress"` or an admin reassigns it to `"Alex Kumar"`.
+2. **Backend Execution**:
+   - Updates the ticket row in SQLite.
+   - Automatically generates a comment:
+     - `Ticket status updated from 'open' to 'in progress'.`
+     - `Ticket reassigned to Alex Kumar.`
+3. **Thread Visibility**: Both customer on the Homepage and agents on the Agent Screen immediately see the updated activity log.
 
 ---
 

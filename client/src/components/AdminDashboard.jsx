@@ -61,10 +61,6 @@ export default function AdminDashboard({
   return (
     <div className="admin-dashboard-view">
       <Header
-        onNewTicket={() => {
-          setEditingTicket(null);
-          setIsModalOpen(true);
-        }}
         onRefresh={onRefresh}
         loading={loading}
       />

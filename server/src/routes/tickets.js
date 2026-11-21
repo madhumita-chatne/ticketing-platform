@@ -47,12 +47,24 @@ router.get('/', (req, res) => {
       assignee,
       customer_email,
       search,
+      ids,
       sortBy = 'created_at',
       order = 'DESC'
     } = req.query;
 
     const conditions = [];
     const params = [];
+
+    if (ids && String(ids).trim()) {
+      const idList = String(ids)
+        .split(',')
+        .map((x) => Number(x.trim()))
+        .filter((n) => !isNaN(n) && n > 0);
+      if (idList.length > 0) {
+        conditions.push(`t.id IN (${idList.map(() => '?').join(',')})`);
+        params.push(...idList);
+      }
+    }
 
     if (status && status !== 'all') {
       conditions.push('t.status = ?');
@@ -222,7 +234,45 @@ router.post('/', (req, res) => {
 
     const ticketTitle = (title || subject || '').trim();
     if (!ticketTitle) {
-      return res.status(400).json({ success: false, message: 'Ticket title/subject is required' });
+      return res.status(400).json({ success: false, message: 'Concern subject/title is required' });
+    }
+    if (ticketTitle.length < 5 || ticketTitle.length > 150) {
+      return res.status(400).json({
+        success: false,
+        message: 'Concern subject must be between 5 and 150 characters'
+      });
+    }
+
+    const ticketDesc = (description || '').trim();
+    if (!ticketDesc) {
+      return res.status(400).json({ success: false, message: 'Concern description is required' });
+    }
+    if (ticketDesc.length < 15 || ticketDesc.length > 3000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Concern description must be between 15 and 3000 characters'
+      });
+    }
+
+    const custName = (customer_name || '').trim();
+    if (custName && custName.length < 2) {
+      return res.status(400).json({ success: false, message: 'Customer name must be at least 2 characters' });
+    }
+
+    const custEmail = (customer_email || '').trim();
+    if (custEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(custEmail)) {
+        return res.status(400).json({ success: false, message: 'Please provide a valid email address (e.g. name@example.com)' });
+      }
+    }
+
+    const validCategories = ['Complaint', 'Billing', 'Technical', 'Product', 'General'];
+    if (category && !validCategories.includes(category.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Must be one of: ${validCategories.join(', ')}`
+      });
     }
 
     const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
@@ -431,6 +481,8 @@ router.patch('/:id', (req, res) => {
       params.push(description.trim());
     }
 
+    let statusChanged = false;
+    let oldStatus = ticket.status;
     if (status !== undefined) {
       const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
       if (!validStatuses.includes(status)) {
@@ -438,6 +490,9 @@ router.patch('/:id', (req, res) => {
       }
       updates.push('status = ?');
       params.push(status);
+      if (status !== oldStatus) {
+        statusChanged = true;
+      }
     }
 
     if (priority !== undefined) {
@@ -465,6 +520,8 @@ router.patch('/:id', (req, res) => {
     }
 
     // Handle agent/assignee assignment update
+    let assignmentChanged = false;
+    let finalAssignee = ticket.assignee;
     if (agent_id !== undefined || assignee !== undefined) {
       let targetAgentId = agent_id !== undefined ? agent_id : ticket.agent_id;
       let targetAssignee = assignee !== undefined ? assignee : ticket.assignee;
@@ -493,6 +550,11 @@ router.patch('/:id', (req, res) => {
         }
       }
 
+      if (targetAgentId !== ticket.agent_id || targetAssignee !== ticket.assignee) {
+        assignmentChanged = true;
+        finalAssignee = targetAssignee;
+      }
+
       updates.push('agent_id = ?', 'assignee = ?');
       params.push(targetAgentId, targetAssignee);
     }
@@ -505,6 +567,31 @@ router.patch('/:id', (req, res) => {
     params.push(id);
 
     db.prepare(`UPDATE tickets SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+
+    // Auto-generate comment on status change
+    if (statusChanged) {
+      const oldFmt = oldStatus.replace('_', ' ');
+      const newFmt = status.replace('_', ' ');
+      const updater = finalAssignee !== 'Unassigned' ? finalAssignee : 'Support System';
+      db.prepare(`
+        INSERT INTO comments (ticket_id, author, author_role, content)
+        VALUES (?, ?, 'agent', ?)
+      `).run(id, updater, `Ticket status updated from '${oldFmt}' to '${newFmt}'.`);
+    }
+
+    // Auto-generate comment on re-assignment
+    if (assignmentChanged) {
+      db.prepare(`
+        INSERT INTO comments (ticket_id, author, author_role, content)
+        VALUES (?, ?, 'agent', ?)
+      `).run(
+        id,
+        finalAssignee !== 'Unassigned' ? finalAssignee : 'Support Desk',
+        finalAssignee !== 'Unassigned'
+          ? `Ticket reassigned to ${finalAssignee}.`
+          : 'Ticket unassigned and returned to queue.'
+      );
+    }
 
     const updatedTicket = db.prepare(`
       SELECT t.*, t.title as subject, a.name as agent_name, a.role as agent_role, a.avatar_color as agent_avatar_color
@@ -533,21 +620,38 @@ router.post('/:id/assign', (req, res) => {
 
     let assignedAgentId = null;
     let assigneeName = 'Unassigned';
+    let assignedDepartment = '';
 
     if (targetId && targetId !== 'unassigned') {
-      const agent = db.prepare('SELECT id, name FROM agents WHERE id = ?').get(targetId);
+      const agent = db.prepare('SELECT id, name, department FROM agents WHERE id = ?').get(targetId);
       if (!agent) {
         return res.status(400).json({ success: false, message: 'Agent not found' });
       }
       assignedAgentId = agent.id;
       assigneeName = agent.name;
+      assignedDepartment = agent.department;
     }
+
+    const wasDifferent = ticket.agent_id !== assignedAgentId;
 
     db.prepare(`
       UPDATE tickets 
       SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `).run(assignedAgentId, assigneeName, id);
+
+    if (wasDifferent) {
+      db.prepare(`
+        INSERT INTO comments (ticket_id, author, author_role, content)
+        VALUES (?, ?, 'agent', ?)
+      `).run(
+        id,
+        assigneeName !== 'Unassigned' ? assigneeName : 'Support Desk',
+        assigneeName !== 'Unassigned'
+          ? `Ticket reassigned to ${assigneeName}${assignedDepartment ? ` (${assignedDepartment})` : ''}.`
+          : 'Ticket unassigned and placed back in general queue.'
+      );
+    }
 
     const updated = db.prepare(`
       SELECT t.*, t.title as subject, a.name as agent_name, a.role as agent_role
