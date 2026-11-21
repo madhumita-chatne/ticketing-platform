@@ -2478,3 +2478,38 @@ button, input, select, textarea {
   align-items: center;
   margin-bottom: 0.35rem;
 }
+
+
+/* Website Tickets Section at End of Screen */
+.website-tickets-section {
+  background-color: #f8fafc;
+  border-top: 1px solid var(--border-color);
+  padding: 4.5rem 1.5rem 6rem;
+  width: 100%;
+}
+
+.website-tickets-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.website-tickets-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  background: #ffffff;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.tickets-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}

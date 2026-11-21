@@ -232,16 +232,19 @@ The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhum
 - **Component**: [`UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
 - **Role**: Clean, focused consumer-facing website dedicated to concern intake and tracking.
 - **Features**:
-  - Clean Navigation bar with logo and a **"Track All My Tickets"** action button.
+  - Clean Navigation bar with logo and a **"Track All My Tickets"** action button that smoothly directs down to the tickets section.
   - Hero section featuring the primary **"Raise a Concern"** CTA button and secondary **"Track All My Tickets"** button.
   - Value commitment cards (Fair Load Balancing, Dedicated Specialist, Direct Communication).
-  - **"Raise a Concern"** modal form with automated least-loaded agent routing; newly created ticket IDs are saved to browser `localStorage` for instant tracking.
-  - **"Track All Created Tickets"** modal:
-    - Lists all tickets created by the user with real-time status badges, priorities, assigned specialists, and response counts.
-    - Live search filter by ticket ID, subject, or keywords.
+  - **"Raise a Concern"** modal form with robust field-level validation and automated least-loaded agent routing.
+  - **In-Page Tickets Section at End of Screen (`#my-tickets-section`)**:
+    - Placed directly at the end of the screen before the footer; no popup modal is required.
+    - Automatically displays all raised concerns and tickets on page load.
+    - Live search filter by ticket ID, subject, description, customer, or specialist.
     - Status filter dropdown (`all`, `open`, `in_progress`, `resolved`, `closed`).
-    - Email lookup bar to find tickets associated with any specific email address.
-  - Dedicated concern details and interactive communication modal allowing direct replies from the customer.
+    - Priority filter dropdown (`all`, `urgent`, `high`, `medium`, `low`).
+    - Email lookup bar to filter specifically to any user email.
+    - Real-time card display with ID, status, priority, category, assigned specialist pill, and comments counter.
+  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card.
   - Clean footer without staff portal links.
 
 ### 2. 🛡️ Admin Portal (`/admin`) — *Basic Auth Protected*
