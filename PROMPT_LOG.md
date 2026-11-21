@@ -510,6 +510,32 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #23: Resolve Merge Conflicts & Complete Interactive Git Rebase on dev-shivani
+- **Date & Time**: `2026-11-21 15:17:00 +05:30`
+- **User Prompt**:
+  > *"fix the merge conflicts and get out of rebase"*
+- **Intent**: Resolve all unmerged file conflicts blocking the interactive git rebase on branch `dev-shivani` (onto `6853056`), complete the rebase cleanly, and verify build and database integrity.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Database: [`server/database.sqlite-wal`](file:///Users/madhumita/ticketing-system/server/database.sqlite-wal)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Root Cause & Conflicts Resolved**:
+  - Interactive rebase was picking commit `b706b42` ("show online/offline status") onto commit `6853056` ("seeded data").
+  - In `client/src/components/AdminDashboard.jsx`: Conflicted between commented roster bar delimiter and new live support agent availability summary + toggle controls. Resolved by integrating live agent online/offline summary (`Support Agents (X Online / Y Total)`), avatar status indicators (`.status-indicator-dot`), interactive online/offline toggle badges (`.agent-status-badge`), and table view `[Online]`/`[Offline]` options.
+  - In `client/src/index.css`: Conflicted on modal overlay z-index and dimensions. Resolved by maintaining `z-index: 2000 !important;` (preventing navbar collision) with `max-height: calc(100vh - 5rem);` and `conversation-modal-body` scroll limits.
+  - In `server/database.sqlite-wal`: Binary conflict resolved using `--ours` to prevent SQLite WAL journal divergence.
+- **Actions Taken**:
+  - Resolved all conflict markers across [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx) and [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css).
+  - Selected `--ours` on `server/database.sqlite-wal` and staged all resolved paths.
+  - Executed `GIT_EDITOR=true git rebase --continue` to successfully complete the interactive rebase.
+- **Verification & Outcome**:
+  - Verified `git status`: Working tree clean on branch `dev-shivani`.
+  - Verified Vite compilation (`npm --prefix client run build`) in 1.04s with zero errors.
+  - Verified backend server (port 5001) and frontend dev server (port 5173) are actively running.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown
