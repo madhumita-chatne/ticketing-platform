@@ -584,6 +584,21 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #26: Frontend Dead Code Audit: Unused Components Identification
+- **Date & Time**: `2026-11-21 15:46:30 +05:30`
+- **User Prompt**:
+  > *"are there any files in frintend that are not being used?"*
+- **Intent**: Comprehensive scan of all frontend directories (`client/src`, `client/src/components`, `client/public`) to detect unused files and dead code.
+- **Key Modules Audited**:
+  - Unused: [`client/src/components/CustomerPortal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/CustomerPortal.jsx), [`client/src/components/PortalNav.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/PortalNav.jsx)
+  - Active: [`App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`main.jsx`](file:///Users/madhumita/ticketing-system/client/src/main.jsx), [`utils.js`](file:///Users/madhumita/ticketing-system/client/src/utils.js), [`index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx), [`AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`Header.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/Header.jsx), [`StatCard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/StatCard.jsx), [`FilterBar.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/FilterBar.jsx), [`TicketCard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketCard.jsx), [`TicketModal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx)
+  - Documentation: [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Findings**:
+  - Found exactly 2 unused files: `CustomerPortal.jsx` and `PortalNav.jsx`. Both originate from the initial multi-tab prototype prior to path-based routing and `UserWebsite.jsx`.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown
