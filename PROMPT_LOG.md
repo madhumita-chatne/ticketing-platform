@@ -242,19 +242,56 @@ This document records all prompts given to Antigravity in this repository, the a
   - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
   - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
 - **Actions Taken**:
-  - **Removed Modal**: Completely removed `isTrackerModalOpen` and the tracker modal overlay popup.
-  - **In-Page Tickets Section ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
-    - Created `<section className="website-tickets-section" id="my-tickets-section">` at the end of the user screen directly preceding the footer.
-    - Loaded all tickets automatically on mount (`fetchTrackedTickets`).
-    - Equipped the section with a live search bar, status filter dropdown, priority filter dropdown, email lookup input, and refresh button.
-    - Rendered tickets in responsive complaint cards showing Ticket ID, Priority, Status, Category, Subject, Description preview, Assigned Specialist badge, timestamp, and comments count badge.
-    - Maintained direct conversation drawer access when clicking any ticket card.
-  - **Smooth Scrolling Navigation**:
-    - Both the Hero section button and top Navbar button invoke `scrollToTicketsSection()`, smoothly scrolling the viewport directly down to the tickets section.
-  - **Styling ([client/src/index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
-    - Added styles for `.website-tickets-section`, `.website-tickets-container`, `.website-tickets-toolbar`, and `.tickets-filter-controls`.
+  - Removed popup tracker modal and embedded an interactive tickets section (`#my-tickets-section`) directly at the end of the user screen.
+  - Wired navbar and hero track buttons to execute smooth scroll to the tickets section.
+  - Populated all tickets on mount and equipped with search, status filter, priority filter, and email lookup.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #14: Fix Ticket Detail Modal Colliding with Sticky Navbar
+- **Date & Time**: `2026-11-21 14:19:10 +05:30`
+- **User Prompt**:
+  > *"opening the ticket in teh user screen makes it collide with the navbar"*
+- **Intent**: Fix visual layering and layout collision where opening a ticket's detail/conversation modal caused its header to collide with and be obscured behind the sticky top navbar.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Z-Index Layering Fix**:
+    - Increased `.modal-overlay` from `z-index: 50` to `z-index: 1000`, placing the backdrop and modal cleanly above the sticky navbar (`z-index: 100`).
+  - **Viewport Clearance & Scrolling Geometry**:
+    - Increased `.modal-overlay` padding from `1rem` to `2.5rem 1rem` to ensure consistent breathing room from the top and bottom of the viewport.
+    - Updated `.modal-content` to use `max-height: calc(100vh - 5rem)` and `margin: auto` with enhanced drop shadow.
+    - Updated `.conversation-modal-body` to `max-height: calc(100vh - 16rem)` with internal scrolling, preventing modal overflow.
   - **Verification**:
-    - Verified clean Vite build (`npm --prefix client run build`) in 977ms.
+    - Verified clean Vite compilation (`npm --prefix client run build`) in 949ms.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #15: Universal Dropdown Chevron-Down Icon Across All Screens
+- **Date & Time**: `2026-11-21 14:27:00 +05:30`
+- **User Prompt**:
+  > *"fix the dropdown icon for everywhere on the dropdown buttons"*
+- **Intent**: Fix dropdown arrows across all `<select>` dropdown controls and select buttons across the entire application so they display consistent, modern, styled Lucide chevron-down indicators instead of default unstyled browser OS controls.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Universal Select Styling in `index.css`**:
+    - Applied `appearance: none; -webkit-appearance: none; -moz-appearance: none;` across all `select` elements.
+    - Integrated inline SVG Lucide chevron-down icon (`stroke='#64748b'`) with smooth transition to indigo (`stroke='#4f46e5'`) on `:focus`.
+    - Configured background position `right 0.75rem center`, size `14px 14px`, and `padding-right: 2.25rem !important` to eliminate text collision with the chevron.
+  - **Standardized Component Classes**:
+    - Styled `.filter-select`, `.form-group select`, and `.agent-select-dropdown` with consistent chevron-down backgrounds.
+    - Styled compact variants (`.card-agent-select`, `select.badge`, and `.filter-select.badge`) with scaled `11px 11px` chevron-down icons, `right 0.45rem center` position, and `1.6rem` padding.
+  - **Prefix & Toolbar Symmetry in `UserWebsite.jsx`**:
+    - Added `<Layers size={14} />` icon wrapper to the Priority dropdown filter in `#my-tickets-section`, matching the `<Filter size={14} />` icon on the Status filter.
+  - **Inline Padding Refinements**:
+    - Cleaned inline padding in `AdminDashboard.jsx` (table status badge select and agent select) and `AuthGate.jsx` (agent picker) to maintain right clearance for the custom dropdown chevrons.
+- **Verification**:
+  - Built client successfully with `npm --prefix client run build` in 948ms.
 - **Status**: ✅ Completed successfully.
 
 ---

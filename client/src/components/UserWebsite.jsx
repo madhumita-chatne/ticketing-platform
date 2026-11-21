@@ -18,6 +18,7 @@ import {
   Search, 
   ArrowRight, 
   Filter, 
+  Layers, 
   AlertCircle 
 } from 'lucide-react';
 
@@ -514,18 +515,21 @@ export default function UserWebsite({ apiBase }) {
               </div>
 
               {/* Priority Filter */}
-              <select
-                className="filter-select"
-                value={trackerPriority}
-                onChange={(e) => setTrackerPriority(e.target.value)}
-                title="Filter by priority"
-              >
-                <option value="all">All Priorities</option>
-                <option value="urgent">Urgent</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Layers size={14} style={{ color: '#64748b' }} />
+                <select
+                  className="filter-select"
+                  value={trackerPriority}
+                  onChange={(e) => setTrackerPriority(e.target.value)}
+                  title="Filter by priority"
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
 
               {/* Refresh Button */}
               <button
@@ -614,7 +618,7 @@ export default function UserWebsite({ apiBase }) {
                 >
                   <div className="complaint-card-top">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span className="complaint-id">#{t.id}</span>
+                      {/* <span className="complaint-id">#{t.id}</span> */}
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
                       <span className="ticket-category">{t.category}</span>
                     </div>
@@ -891,7 +895,7 @@ export default function UserWebsite({ apiBase }) {
             <div className="modal-header">
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span className="complaint-id">Concern #{selectedTicket.id}</span>
+                  {/* <span className="complaint-id">Concern #{selectedTicket.id}</span> */}
                   <span className={`badge badge-status-${ticketDetails?.status || selectedTicket.status}`}>
                     {(ticketDetails?.status || selectedTicket.status).replace('_', ' ')}
                   </span>

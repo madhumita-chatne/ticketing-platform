@@ -75,7 +75,7 @@ export default function AdminDashboard({
       )}
 
       {/* Agents Roster Bar */}
-      <div className="agents-roster-bar">
+      {/* <div className="agents-roster-bar">
         <div className="roster-title">
           <Shield size={16} color="#4f46e5" />
           <span>Support Agents Team & Active Load:</span>
@@ -109,7 +109,7 @@ export default function AdminDashboard({
             <span>⚡ Auto-Assign ({stats.unassigned})</span>
           </button>
         )}
-      </div>
+      </div> */}
 
       {/* Stats Summary Cards */}
       <div className="stats-grid">
@@ -256,7 +256,7 @@ export default function AdminDashboard({
                         className={`filter-select badge badge-status-${t.status}`}
                         value={t.status}
                         onChange={(e) => onStatusChange(t.id, e.target.value)}
-                        style={{ cursor: 'pointer', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                        style={{ cursor: 'pointer', padding: '0.2rem 1.6rem 0.2rem 0.5rem', fontSize: '0.75rem' }}
                       >
                         <option value="open">Open</option>
                         <option value="in_progress">In Progress</option>
@@ -273,7 +273,7 @@ export default function AdminDashboard({
                           const val = e.target.value;
                           onAssignAgent(t.id, val === 'auto' ? 'auto' : val ? Number(val) : null);
                         }}
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px' }}
+                        style={{ padding: '0.25rem 1.8rem 0.25rem 0.6rem', fontSize: '0.8rem', borderRadius: '6px' }}
                       >
                         <option value="">Unassigned</option>
                         <option value="auto">⚡ Auto-Assign (Least Loaded)</option>

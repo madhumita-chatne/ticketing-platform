@@ -244,7 +244,7 @@ The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhum
     - Priority filter dropdown (`all`, `urgent`, `high`, `medium`, `low`).
     - Email lookup bar to filter specifically to any user email.
     - Real-time card display with ID, status, priority, category, assigned specialist pill, and comments counter.
-  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card.
+  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card (positioned at `z-index: 1000` with `calc(100vh - 5rem)` clearance to eliminate collisions with the sticky top navbar).
   - Clean footer without staff portal links.
 
 ### 2. 🛡️ Admin Portal (`/admin`) — *Basic Auth Protected*
@@ -304,6 +304,16 @@ App.jsx (Path router & global data sync)
                                ├── Assigned Tickets View (Default: List/Table)
                                └── Ticket Modal (Status updates & comment composer)
 ```
+
+---
+
+### 4. 🎨 Design System & Custom Dropdown UI Styling
+- **Universal Custom Select Arrows**:
+  - Native browser `<select>` dropdown arrows are replaced using `appearance: none; -webkit-appearance: none; -moz-appearance: none;`.
+  - Styled with an embedded vector Lucide chevron-down icon (`stroke='#64748b'`, transitioning to `#4f46e5` on focus).
+  - Background position: `right 0.75rem center` with `14px 14px` size and `padding-right: 2.25rem !important` across all filter bars, forms, modals, and login gates.
+  - Compact variants (`.card-agent-select` on ticket cards and `select.badge` in the admin table) use scaled `11px 11px` chevrons positioned at `right 0.45rem center` with `1.6rem` padding.
+  - Toolbar symmetry: Filter toolbars in `UserWebsite.jsx` and `AgentScreen.jsx` feature paired prefix icons (`<Filter />`, `<Layers />`, `<ArrowUpDown />`) alongside uniform chevron-down dropdown icons.
 
 ---
 
