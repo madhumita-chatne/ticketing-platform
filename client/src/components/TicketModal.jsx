@@ -195,7 +195,7 @@ export default function TicketModal({ isOpen, onClose, onSave, onDelete, ticket,
                   <option value="auto">⚡ Auto-Assign (Least Loaded Agent)</option>
                   {agents.map((agent) => (
                     <option key={agent.id} value={agent.id}>
-                      {agent.name} — {agent.department} ({agent.active_load || 0} active)
+                      {agent.name} [{agent.status === 'offline' ? 'Offline' : 'Online'}] — {agent.department} ({agent.active_load || 0} active)
                     </option>
                   ))}
                 </select>

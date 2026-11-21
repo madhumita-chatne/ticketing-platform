@@ -483,6 +483,33 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #22: Agent Online/Offline Visibility & Controls in Admin UI
+- **Date & Time**: `2026-11-21 15:02:30 +05:30`
+- **User Prompt**:
+  > *"there is a funcionality of agent to go online offline. the admin should be able to see which agents are online/offline in the admin UI"*
+- **Intent**: Provide complete visual visibility and control over agent online/offline availability throughout the Admin Dashboard.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/FilterBar.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/FilterBar.jsx), [`client/src/components/TicketModal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx), [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Support Agents Roster Bar ([AdminDashboard.jsx](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx))**:
+    - Restored and enhanced the roster bar with live availability summary (`Support Agents (X Online / Y Total)`).
+    - Added green/gray status indicator dots (`.status-indicator-dot.online`, `.status-indicator-dot.offline`) on each specialist's avatar.
+    - Added clickable availability badges (`.badge-online` / `.badge-offline`) allowing the admin to inspect and toggle an agent's status directly via `PATCH /api/agents/:id/status`.
+  - **Filter Bar ([FilterBar.jsx](file:///Users/madhumita/ticketing-system/client/src/components/FilterBar.jsx))**:
+    - Appended `[Online]` and `[Offline]` tags to all agent dropdown options.
+  - **Table View Inline Assignment ([AdminDashboard.jsx](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx))**:
+    - Appended `[Online]` and `[Offline]` tags to inline agent assignment options.
+  - **Ticket Detail Modal ([TicketModal.jsx](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx))**:
+    - Appended `[Online]` and `[Offline]` tags to assignment dropdown options.
+  - **Styling ([index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
+    - Added CSS rules for `.status-indicator-dot`, `.agent-status-badge`, `.status-dot-mini`, and `.roster-pill-offline`.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) in 967ms with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown

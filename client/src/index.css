@@ -1557,6 +1557,86 @@ select:focus {
   color: var(--text-muted);
 }
 
+/* Agent Online/Offline Badges & Dots in Admin UI */
+.status-indicator-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+}
+
+.status-indicator-dot.online {
+  background-color: #10b981;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25);
+}
+
+.status-indicator-dot.offline {
+  background-color: #94a3b8;
+}
+
+.agent-status-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.agent-status-badge.badge-online {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.agent-status-badge.badge-online:hover {
+  background-color: #d1fae5;
+}
+
+.agent-status-badge.badge-offline {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.agent-status-badge.badge-offline:hover {
+  background-color: #e2e8f0;
+}
+
+.status-dot-mini {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot-mini.online {
+  background-color: #10b981;
+}
+
+.status-dot-mini.offline {
+  background-color: #94a3b8;
+}
+
+.roster-pill-offline {
+  opacity: 0.8;
+  border-style: dashed;
+}
+
+.roster-pill-offline:hover {
+  opacity: 1;
+}
+
 .agent-availability-toggle {
   border: 0;
   border-radius: 9999px;

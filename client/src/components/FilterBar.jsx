@@ -40,7 +40,7 @@ export default function FilterBar({
           <option value="unassigned">Unassigned Only</option>
           {agents.map((agent) => (
             <option key={agent.id} value={agent.id}>
-              {agent.name} ({agent.department})
+              {agent.name} [{agent.status === 'offline' ? 'Offline' : 'Online'}] — {agent.department}
             </option>
           ))}
         </select>

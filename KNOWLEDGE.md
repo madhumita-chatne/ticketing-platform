@@ -256,6 +256,8 @@ The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhum
 - **Authentication**: Requires the common password.
 - **Clean Interface**: **No "New Ticket" button** is shown in the Admin view (all tickets originate directly from customer concerns on the Homepage).
 - **Features**:
+  - **Real-Time Agent Availability & Roster Bar**: Prominently shows which agents are **Online** (green indicator dot & badge) or **Offline** (gray indicator dot & badge), with live summary count (`X Online / Y Total`), active workloads, and direct one-click toggle controls.
+  - **Status Visibility Across All Dropdowns**: Both the Filter Bar and the Table View inline assignment dropdowns display `[Online]` / `[Offline]` status next to each specialist.
   - Active workload counters for all 5 support agents in the roster bar.
   - Kanban board with drag/status columns (`Open`, `In Progress`, `Resolved`, `Closed`).
   - Table view with inline agent assignment dropdowns (supports manual assignment or `⚡ Auto-Assign`).
