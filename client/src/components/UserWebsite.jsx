@@ -10,21 +10,20 @@ import {
   ShieldCheck, 
   X, 
   Sparkles, 
-  RefreshCw,
-  Zap,
-  Users,
-  MessageSquare,
-  LifeBuoy,
-  Search,
-  ArrowRight,
-  Filter,
-  AlertCircle
+  RefreshCw, 
+  Zap, 
+  Users, 
+  MessageSquare, 
+  LifeBuoy, 
+  Search, 
+  ArrowRight, 
+  Filter, 
+  AlertCircle 
 } from 'lucide-react';
 
 export default function UserWebsite({ apiBase }) {
   // Modal states
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
-  const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketDetails, setTicketDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -48,17 +47,87 @@ export default function UserWebsite({ apiBase }) {
   const [customerComment, setCustomerComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
-  // Tracker state
+  // All tickets state for the bottom section
   const [trackedTickets, setTrackedTickets] = useState([]);
   const [loadingTracked, setLoadingTracked] = useState(false);
   const [trackerSearch, setTrackerSearch] = useState('');
   const [trackerStatus, setTrackerStatus] = useState('all');
+  const [trackerPriority, setTrackerPriority] = useState('all');
   const [lookupEmail, setLookupEmail] = useState(() => {
     return (typeof window !== 'undefined' && localStorage.getItem('ticketflow_my_email')) || '';
   });
-  const [showingAllFallback, setShowingAllFallback] = useState(false);
 
-  // Field validation rules
+  // Smooth scroll helper to navigate directly to the tickets section at the end of the screen
+  const scrollToTicketsSection = () => {
+    const el = document.getElementById('my-tickets-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Fetch ticket details when opening conversation modal
+  const openTicketDetails = async (ticket) => {
+    setSelectedTicket(ticket);
+    try {
+      setLoadingDetails(true);
+      const res = await fetch(`${apiBase}/${ticket.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setTicketDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch details:', err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const refreshSelectedTicket = async () => {
+    if (!selectedTicket) return;
+    try {
+      setLoadingDetails(true);
+      const res = await fetch(`${apiBase}/${selectedTicket.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setTicketDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to refresh:', err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  // Fetch all tickets for the bottom section
+  const fetchTrackedTickets = async (emailOverride) => {
+    try {
+      setLoadingTracked(true);
+      const emailToUse = emailOverride !== undefined ? emailOverride : lookupEmail;
+      const params = new URLSearchParams();
+
+      if (emailToUse && emailToUse.trim()) {
+        params.append('customer_email', emailToUse.trim());
+      }
+
+      const url = params.toString() ? `${apiBase}?${params.toString()}` : `${apiBase}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setTrackedTickets(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load tickets:', err);
+    } finally {
+      setLoadingTracked(false);
+    }
+  };
+
+  // Initial load: populate all tickets in the bottom section
+  useEffect(() => {
+    fetchTrackedTickets();
+  }, []);
+
+  // Validation rules
   const validateField = (name, value) => {
     switch (name) {
       case 'subject':
@@ -122,105 +191,10 @@ export default function UserWebsite({ apiBase }) {
     setIsRaiseModalOpen(true);
   };
 
-  // Fetch ticket details when opening concern modal
-  const openTicketDetails = async (ticket) => {
-    setSelectedTicket(ticket);
-    try {
-      setLoadingDetails(true);
-      const res = await fetch(`${apiBase}/${ticket.id}`);
-      const data = await res.json();
-      if (data.success) {
-        setTicketDetails(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch details:', err);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  const refreshSelectedTicket = async () => {
-    if (!selectedTicket) return;
-    try {
-      setLoadingDetails(true);
-      const res = await fetch(`${apiBase}/${selectedTicket.id}`);
-      const data = await res.json();
-      if (data.success) {
-        setTicketDetails(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to refresh:', err);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  // Helper to persist created ticket IDs in browser localStorage
-  const recordCreatedTicket = (ticket) => {
-    try {
-      const savedIds = JSON.parse(localStorage.getItem('ticketflow_my_ticket_ids') || '[]');
-      if (!savedIds.includes(ticket.id)) {
-        savedIds.unshift(ticket.id);
-        localStorage.setItem('ticketflow_my_ticket_ids', JSON.stringify(savedIds));
-      }
-      if (ticket.customer_email && ticket.customer_email.trim()) {
-        localStorage.setItem('ticketflow_my_email', ticket.customer_email.trim());
-        setLookupEmail(ticket.customer_email.trim());
-      }
-    } catch (err) {
-      console.error('Could not save to localStorage:', err);
-    }
-  };
-
-  // Fetch tickets that the user has created
-  const fetchTrackedTickets = async (emailOverride) => {
-    try {
-      setLoadingTracked(true);
-      let savedIds = [];
-      try {
-        savedIds = JSON.parse(localStorage.getItem('ticketflow_my_ticket_ids') || '[]');
-      } catch {
-        savedIds = [];
-      }
-
-      const emailToUse = emailOverride !== undefined ? emailOverride : lookupEmail;
-      const params = new URLSearchParams();
-
-      if (emailToUse && emailToUse.trim()) {
-        params.append('customer_email', emailToUse.trim());
-        setShowingAllFallback(false);
-      } else if (savedIds.length > 0) {
-        params.append('ids', savedIds.join(','));
-        setShowingAllFallback(false);
-      } else {
-        // Fallback: If no tickets saved in this browser yet, fetch all recent tickets
-        setShowingAllFallback(true);
-      }
-
-      const url = params.toString() ? `${apiBase}?${params.toString()}` : `${apiBase}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setTrackedTickets(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to load tracked tickets:', err);
-    } finally {
-      setLoadingTracked(false);
-    }
-  };
-
-  // Open Tracker modal
-  const handleOpenTracker = () => {
-    setIsTrackerModalOpen(true);
-    fetchTrackedTickets();
-  };
-
   // Submit new complaint/concern
   const handleRaiseConcern = async (e) => {
     e.preventDefault();
 
-    // Mark all required fields as touched for validation feedback
     const newTouched = {
       subject: true,
       description: true,
@@ -270,8 +244,14 @@ export default function UserWebsite({ apiBase }) {
         throw new Error(json.message || 'Failed to submit concern');
       }
 
-      // Record ticket ID for tracking
-      recordCreatedTicket(json.data);
+      if (formData.customer_email.trim()) {
+        try {
+          localStorage.setItem('ticketflow_my_email', formData.customer_email.trim());
+          setLookupEmail(formData.customer_email.trim());
+        } catch (e) {
+          console.error(e);
+        }
+      }
 
       setSubmitSuccess(json.data);
       setFormData({
@@ -284,6 +264,9 @@ export default function UserWebsite({ apiBase }) {
       });
       setFieldErrors({});
       setTouched({});
+
+      // Refresh the tickets section so the new ticket appears immediately
+      fetchTrackedTickets();
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -316,10 +299,7 @@ export default function UserWebsite({ apiBase }) {
       if (json.success) {
         setCustomerComment('');
         await refreshSelectedTicket();
-        // Also refresh list if tracker is active
-        if (isTrackerModalOpen) {
-          fetchTrackedTickets();
-        }
+        fetchTrackedTickets();
       }
     } catch (err) {
       console.error('Failed to post reply:', err);
@@ -328,9 +308,12 @@ export default function UserWebsite({ apiBase }) {
     }
   };
 
-  // Filter tracked tickets in memory
+  // Filter tickets in memory for the section
   const filteredTrackedTickets = trackedTickets.filter((t) => {
     if (trackerStatus !== 'all' && t.status !== trackerStatus) {
+      return false;
+    }
+    if (trackerPriority !== 'all' && t.priority !== trackerPriority) {
       return false;
     }
     if (trackerSearch.trim()) {
@@ -340,7 +323,8 @@ export default function UserWebsite({ apiBase }) {
       const matchDesc = (t.description || '').toLowerCase().includes(q);
       const matchAgent = (t.agent_name || t.assignee || '').toLowerCase().includes(q);
       const matchEmail = (t.customer_email || '').toLowerCase().includes(q);
-      if (!matchId && !matchTitle && !matchDesc && !matchAgent && !matchEmail) {
+      const matchCustomer = (t.customer_name || '').toLowerCase().includes(q);
+      if (!matchId && !matchTitle && !matchDesc && !matchAgent && !matchEmail && !matchCustomer) {
         return false;
       }
     }
@@ -349,7 +333,7 @@ export default function UserWebsite({ apiBase }) {
 
   return (
     <div className="website-root">
-      {/* Public Navbar with Track My Tickets button */}
+      {/* Public Navbar */}
       <header className="website-navbar">
         <div className="website-nav-container">
           <div className="website-brand">
@@ -362,14 +346,14 @@ export default function UserWebsite({ apiBase }) {
             </div>
           </div>
 
-          {/* Action button to track tickets in navbar */}
+          {/* Action button to direct user to tickets section at end of screen */}
           <div className="website-nav-actions">
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={handleOpenTracker}
+              onClick={scrollToTicketsSection}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
-              title="Track all tickets that you have created"
+              title="View all tickets at the end of the screen"
             >
               <Clock size={15} />
               <span>Track All My Tickets</span>
@@ -404,12 +388,12 @@ export default function UserWebsite({ apiBase }) {
               <span>Raise a Concern</span>
             </button>
 
-            {/* Prominent Track All My Tickets Button */}
+            {/* Directs user to the tickets section at the end of the screen */}
             <button
               type="button"
               className="btn btn-secondary hero-secondary-btn"
-              onClick={handleOpenTracker}
-              title="View and track all tickets you have raised"
+              onClick={scrollToTicketsSection}
+              title="Direct down to all tickets at the end of the screen"
             >
               <Clock size={19} />
               <span>Track All My Tickets</span>
@@ -444,7 +428,7 @@ export default function UserWebsite({ apiBase }) {
       </section>
 
       {/* Information Cards Section */}
-      <section className="website-section" style={{ padding: '4rem 1.5rem 5rem' }}>
+      <section className="website-section" style={{ padding: '4rem 1.5rem 4rem' }}>
         <div className="section-intro" style={{ marginBottom: '2.5rem' }}>
           <span className="section-eyebrow">Dedicated Resolution</span>
           <h2>Our Commitment to Your Concerns</h2>
@@ -478,6 +462,188 @@ export default function UserWebsite({ apiBase }) {
         </div>
       </section>
 
+      {/* ALL TICKETS SECTION AT THE END OF THE SCREEN */}
+      <section className="website-tickets-section" id="my-tickets-section">
+        <div className="website-tickets-container">
+          <div className="section-intro" style={{ marginBottom: '2rem' }}>
+            <span className="section-eyebrow">LIVE RESOLUTION TRACKER</span>
+            <h2>All Raised Concerns & Tickets ({filteredTrackedTickets.length})</h2>
+            <p>Track live resolution progress, see assigned specialists, and review conversation history in real time.</p>
+          </div>
+
+          {/* Interactive Toolbar */}
+          <div className="website-tickets-toolbar">
+            <div className="tracker-search-input" style={{ minWidth: '280px', flex: 1 }}>
+              <Search size={16} className="tracker-search-icon" />
+              <input
+                type="text"
+                placeholder="Search tickets by ID, subject, or details..."
+                value={trackerSearch}
+                onChange={(e) => setTrackerSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="tickets-filter-controls">
+              {/* Status Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Filter size={14} style={{ color: '#64748b' }} />
+                <select
+                  className="filter-select"
+                  value={trackerStatus}
+                  onChange={(e) => setTrackerStatus(e.target.value)}
+                  title="Filter by status"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="open">Open</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+
+              {/* Priority Filter */}
+              <select
+                className="filter-select"
+                value={trackerPriority}
+                onChange={(e) => setTrackerPriority(e.target.value)}
+                title="Filter by priority"
+              >
+                <option value="all">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+
+              {/* Refresh Button */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => fetchTrackedTickets()}
+                disabled={loadingTracked}
+                title="Refresh tickets"
+              >
+                <RefreshCw size={14} className={loadingTracked ? 'spin' : ''} />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Optional Email Filter Bar */}
+          <div className="tracker-email-lookup" style={{ marginBottom: '1.75rem' }}>
+            <User size={15} style={{ color: '#0284c7' }} />
+            <span>Filter to your email:</span>
+            <input
+              type="email"
+              placeholder="e.g. yourname@example.com"
+              value={lookupEmail}
+              onChange={(e) => setLookupEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  fetchTrackedTickets(lookupEmail);
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => fetchTrackedTickets(lookupEmail)}
+              disabled={loadingTracked}
+            >
+              Filter
+            </button>
+            {lookupEmail && (
+              <button
+                type="button"
+                className="btn-link"
+                style={{ fontSize: '0.8rem', color: '#64748b' }}
+                onClick={() => {
+                  setLookupEmail('');
+                  fetchTrackedTickets('');
+                }}
+              >
+                Clear Email Filter
+              </button>
+            )}
+          </div>
+
+          {/* Tickets Display */}
+          {loadingTracked ? (
+            <div className="empty-state" style={{ padding: '3.5rem 1rem' }}>
+              <Clock size={36} className="spin" style={{ color: '#0284c7' }} />
+              <p style={{ marginTop: '0.75rem' }}>Loading tickets...</p>
+            </div>
+          ) : filteredTrackedTickets.length === 0 ? (
+            <div className="empty-state" style={{ padding: '3.5rem 1rem', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <CheckCircle2 size={40} style={{ color: '#94a3b8' }} />
+              <h3 style={{ fontSize: '1.2rem', margin: '0.75rem 0 0.3rem' }}>No tickets found</h3>
+              <p style={{ fontSize: '0.88rem', color: '#64748b', maxWidth: '420px', margin: '0 auto 1.25rem' }}>
+                {trackerSearch || trackerStatus !== 'all' || trackerPriority !== 'all' || lookupEmail
+                  ? 'No tickets match your search or filter criteria.'
+                  : 'No tickets on record. Submit a concern above to get started.'}
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={openRaiseModal}
+              >
+                <PlusCircle size={16} />
+                <span>Raise a Concern</span>
+              </button>
+            </div>
+          ) : (
+            <div className="complaints-grid">
+              {filteredTrackedTickets.map((t) => (
+                <div
+                  key={t.id}
+                  className="complaint-card tracker-ticket-card"
+                  onClick={() => openTicketDetails(t)}
+                >
+                  <div className="complaint-card-top">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="complaint-id">#{t.id}</span>
+                      <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                      <span className="ticket-category">{t.category}</span>
+                    </div>
+                    <span className={`badge badge-status-${t.status}`}>
+                      {t.status.replace('_', ' ')}
+                    </span>
+                  </div>
+
+                  <h3 className="complaint-subject">{t.title || t.subject}</h3>
+                  <p className="complaint-concern">{t.description || 'No description provided.'}</p>
+
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    {t.agent_name && t.agent_name !== 'Unassigned' ? (
+                      <div className="tracker-ticket-agent-badge">
+                        <Headphones size={13} />
+                        <span>Specialist: <strong>{t.agent_name}</strong> ({t.agent_department || 'Support'})</span>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.78rem', color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Clock size={12} />
+                        <span>Auto-assigning to specialist</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="complaint-footer">
+                    <div className="complaint-comments-badge">
+                      <MessageSquare size={14} />
+                      <span>{t.comments_count || 0} response{(t.comments_count || 0) === 1 ? '' : 's'}</span>
+                    </div>
+                    <span className="open-ticket-link">
+                      View Discussion & Reply <ArrowRight size={14} />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="website-footer">
         <div className="website-footer-content" style={{ justifyContent: 'center', textAlign: 'center' }}>
@@ -498,206 +664,6 @@ export default function UserWebsite({ apiBase }) {
           <span>© {new Date().getFullYear()} TicketFlow Support Systems. All rights reserved.</span>
         </div>
       </footer>
-
-      {/* Track All Created Tickets Modal */}
-      {isTrackerModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsTrackerModalOpen(false)}>
-          <div className="modal-content modal-large tracker-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                  <Clock size={20} color="#0284c7" />
-                  <h3 style={{ margin: 0 }}>Track All Created Tickets</h3>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
-                  Review status updates, assigned specialists, and communication histories for your submitted concerns.
-                </p>
-              </div>
-              <button className="btn-icon" onClick={() => setIsTrackerModalOpen(false)} title="Close tracker">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ maxHeight: '72vh', overflowY: 'auto' }}>
-              {/* Optional Email Filter Bar */}
-              <div className="tracker-email-lookup">
-                <User size={15} style={{ color: '#0284c7' }} />
-                <span>Search by your email:</span>
-                <input
-                  type="email"
-                  placeholder="e.g. yourname@example.com"
-                  value={lookupEmail}
-                  onChange={(e) => setLookupEmail(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      fetchTrackedTickets(lookupEmail);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => fetchTrackedTickets(lookupEmail)}
-                  disabled={loadingTracked}
-                >
-                  Lookup
-                </button>
-                {lookupEmail && (
-                  <button
-                    type="button"
-                    className="btn-link"
-                    style={{ fontSize: '0.78rem', color: '#64748b' }}
-                    onClick={() => {
-                      setLookupEmail('');
-                      fetchTrackedTickets('');
-                    }}
-                  >
-                    Clear Filter
-                  </button>
-                )}
-              </div>
-
-              {/* Search & Status Filter Controls */}
-              <div className="tracker-search-bar">
-                <div className="tracker-search-input">
-                  <Search size={15} className="tracker-search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search by ticket ID, subject, or details..."
-                    value={trackerSearch}
-                    onChange={(e) => setTrackerSearch(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Filter size={14} style={{ color: '#64748b' }} />
-                  <select
-                    className="filter-select"
-                    value={trackerStatus}
-                    onChange={(e) => setTrackerStatus(e.target.value)}
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => fetchTrackedTickets()}
-                  disabled={loadingTracked}
-                  title="Refresh list"
-                >
-                  <RefreshCw size={14} className={loadingTracked ? 'spin' : ''} />
-                  <span>Refresh</span>
-                </button>
-              </div>
-
-              {/* Informational Hint Banner */}
-              {showingAllFallback && (
-                <div style={{ fontSize: '0.8rem', color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '0.45rem 0.8rem', borderRadius: '6px', marginBottom: '0.9rem' }}>
-                  Showing all recent concerns on record. Enter your email above to filter specifically to your tickets.
-                </div>
-              )}
-
-              {/* Tickets List */}
-              {loadingTracked ? (
-                <div className="empty-state" style={{ padding: '2.5rem 1rem' }}>
-                  <Clock size={32} className="spin" style={{ color: '#0284c7' }} />
-                  <p>Loading your tickets...</p>
-                </div>
-              ) : filteredTrackedTickets.length === 0 ? (
-                <div className="empty-state" style={{ padding: '2.5rem 1rem' }}>
-                  <CheckCircle2 size={36} style={{ color: '#94a3b8' }} />
-                  <h3 style={{ fontSize: '1.1rem', margin: '0.5rem 0 0.2rem' }}>No tickets found</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                    {trackerSearch || trackerStatus !== 'all' || lookupEmail
-                      ? 'No tickets match your search criteria. Try clearing the filter.'
-                      : 'You have not submitted any concerns yet in this session.'}
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    style={{ marginTop: '0.8rem' }}
-                    onClick={() => {
-                      setIsTrackerModalOpen(false);
-                      openRaiseModal();
-                    }}
-                  >
-                    <PlusCircle size={16} />
-                    <span>Raise a New Concern</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="tracker-tickets-list">
-                  {filteredTrackedTickets.map((t) => (
-                    <div
-                      key={t.id}
-                      className="tracker-ticket-card"
-                      onClick={() => openTicketDetails(t)}
-                    >
-                      <div className="tracker-ticket-top">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span className="complaint-id" style={{ fontWeight: 700 }}>#{t.id}</span>
-                          <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
-                          <span className="ticket-category">{t.category}</span>
-                        </div>
-                        <span className={`badge badge-status-${t.status}`}>
-                          {t.status.replace('_', ' ')}
-                        </span>
-                      </div>
-
-                      <div className="tracker-ticket-title">{t.title || t.subject}</div>
-                      <div className="tracker-ticket-desc">{t.description || 'No description provided.'}</div>
-
-                      {t.agent_name && t.agent_name !== 'Unassigned' ? (
-                        <div className="tracker-ticket-agent-badge">
-                          <Headphones size={13} />
-                          <span>Assigned Specialist: {t.agent_name} ({t.agent_role || 'Specialist'})</span>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '0.78rem', color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Clock size={12} />
-                          <span>Auto-routing to available specialist</span>
-                        </div>
-                      )}
-
-                      <div className="tracker-ticket-footer">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b' }}>
-                          <Clock size={13} />
-                          <span>Logged on {new Date(t.created_at).toLocaleString()}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                          <span className="complaint-comments-badge" style={{ fontSize: '0.78rem' }}>
-                            <MessageSquare size={13} />
-                            <span>{t.comments_count || 0} response{(t.comments_count || 0) === 1 ? '' : 's'}</span>
-                          </span>
-                          <span style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                            View Conversation <ArrowRight size={13} />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                Showing <strong>{filteredTrackedTickets.length}</strong> ticket{filteredTrackedTickets.length === 1 ? '' : 's'}
-              </span>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsTrackerModalOpen(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Raise a Concern Modal */}
       {isRaiseModalOpen && (
@@ -753,11 +719,11 @@ export default function UserWebsite({ apiBase }) {
                     onClick={() => {
                       setSubmitSuccess(null);
                       setIsRaiseModalOpen(false);
-                      handleOpenTracker();
+                      scrollToTicketsSection();
                     }}
                   >
                     <Clock size={16} />
-                    <span>Track All My Tickets</span>
+                    <span>View in Tickets List Below</span>
                   </button>
                 </div>
               </div>

@@ -226,26 +226,35 @@ This document records all prompts given to Antigravity in this repository, the a
   - Backend: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
   - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
 - **Actions Taken**:
-  - **Frontend Validation ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
-    - **Subject**: Required, minimum 5 characters, maximum 150 characters. Dynamic character count counter (`{length}/150`).
-    - **Description**: Required, minimum 15 characters, maximum 3000 characters. Dynamic character count counter (`{length}/3000`).
-    - **Customer Name**: Required, minimum 2 characters, maximum 80 characters.
-    - **Customer Email**: Required, RFC 5322 regex validation (`name@example.com`).
-    - **Real-time On-Blur & On-Change Feedback**: Visual `input-error` red borders and inline `<span className="field-error-text">` with `<AlertCircle />` error icons directly below each invalid input.
-    - **Form-Level Safety**: Prevents network request dispatch when any validation constraint is unmet, displaying a clear summary error banner.
-  - **Backend Validation ([server/src/routes/tickets.js](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js))**:
-    - In `POST /api/tickets`, validates:
-      - Subject: Non-empty, 5 to 150 characters (400 Bad Request on failure).
-      - Description: Non-empty, 15 to 3000 characters (400 Bad Request on failure).
-      - Customer Name: Minimum 2 characters if provided (400 Bad Request on failure).
-      - Customer Email: Regex format check if provided (400 Bad Request on failure).
-      - Category: Whitelist validation against `['Complaint', 'Billing', 'Technical', 'Product', 'General']`.
-      - Priority: Whitelist validation against `['low', 'medium', 'high', 'urgent']`.
-      - Status: Whitelist validation against `['open', 'in_progress', 'resolved', 'closed']`.
+  - Added client-side real-time on-blur and on-change validation for subject, description, name, and email with character counters and error icons.
+  - Added backend validation in `POST /api/tickets` enforcing string length rules, RFC 5322 email regex, and whitelist validation for category, priority, and status.
+  - Added form validation CSS feedback classes.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #13: Direct User to End of Screen for All Tickets Instead of Modal
+- **Date & Time**: `2026-11-21 14:05:06 +05:30`
+- **User Prompt**:
+  > *"instead of opening a modal on clicking on the track all my orders button, direct user to the end of the user screen which should have all the tickets"*
+- **Intent**: Remove the popup modal on clicking the track tickets button; instead, place the full list of tickets directly at the end of the user screen (above the footer) and smoothly scroll the user down to this section when clicking the button.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Removed Modal**: Completely removed `isTrackerModalOpen` and the tracker modal overlay popup.
+  - **In-Page Tickets Section ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Created `<section className="website-tickets-section" id="my-tickets-section">` at the end of the user screen directly preceding the footer.
+    - Loaded all tickets automatically on mount (`fetchTrackedTickets`).
+    - Equipped the section with a live search bar, status filter dropdown, priority filter dropdown, email lookup input, and refresh button.
+    - Rendered tickets in responsive complaint cards showing Ticket ID, Priority, Status, Category, Subject, Description preview, Assigned Specialist badge, timestamp, and comments count badge.
+    - Maintained direct conversation drawer access when clicking any ticket card.
+  - **Smooth Scrolling Navigation**:
+    - Both the Hero section button and top Navbar button invoke `scrollToTicketsSection()`, smoothly scrolling the viewport directly down to the tickets section.
   - **Styling ([client/src/index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
-    - Added styles for `.input-error`, `.field-error-text`, `.field-char-count`, and `.form-label-row`.
+    - Added styles for `.website-tickets-section`, `.website-tickets-container`, `.website-tickets-toolbar`, and `.tickets-filter-controls`.
   - **Verification**:
-    - Verified Vite client compilation (`npm --prefix client run build`) with zero errors.
+    - Verified clean Vite build (`npm --prefix client run build`) in 977ms.
 - **Status**: ✅ Completed successfully.
 
 ---
