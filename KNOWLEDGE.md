@@ -72,6 +72,7 @@ The database file resides at [`server/database.sqlite`](file:///Users/madhumita/
    │ role            TEXT           │           │
    │ department      TEXT           │           │
    │ avatar_color    TEXT           │           │
+   │ status          TEXT           │ (online, offline)
    │ created_at      DATETIME       │           │
    └────────────────────────────────┘           │ (1 to Many)
                                                 │ agent_id
@@ -143,6 +144,7 @@ server/
 | `GET` | `/api/health` | Health check and SQLite database status |
 | `GET` | `/api/agents` | List all 5 agents with assigned ticket statistics & real-time `active_load` |
 | `GET` | `/api/agents/:id` | Get details and ticket list for a specific agent |
+| `PATCH` | `/api/agents/:id/status` | Set agent availability: `{ "status": "online" \| "offline" }` |
 | `GET` | `/api/tickets` | Query tickets. Filters: `ids`, `status`, `priority`, `category`, `agent_id`, `search`, `customer_email`, `sortBy`, `order` |
 | `GET` | `/api/tickets/stats` | Aggregated metrics for status and priority counts |
 | `GET` | `/api/tickets/:id` | Get ticket with agent details and full comments thread |
@@ -175,10 +177,12 @@ SELECT
   a.role,
   a.department,
   a.avatar_color,
+  a.status,
   COUNT(CASE WHEN t.status IN ('open', 'in_progress') THEN 1 END) AS active_load,
   COUNT(t.id) AS total_assigned
 FROM agents a
 LEFT JOIN tickets t ON t.agent_id = a.id
+WHERE a.status = 'online'
 GROUP BY a.id
 ORDER BY active_load ASC, total_assigned ASC, a.id ASC
 LIMIT 1;

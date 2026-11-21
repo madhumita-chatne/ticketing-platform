@@ -17,6 +17,7 @@ export function getLeastLoadedAgent() {
       COUNT(t.id) AS total_assigned
     FROM agents a
     LEFT JOIN tickets t ON t.agent_id = a.id
+    WHERE a.status = 'online'
     GROUP BY a.id
     ORDER BY active_load ASC, total_assigned ASC, a.id ASC
     LIMIT 1
@@ -355,7 +356,7 @@ router.post('/', (req, res) => {
       auto_assigned: Boolean(assignedAgent),
       message: assignedAgent 
         ? `Ticket created and auto-assigned to ${assignedAgent.name} (${assignedAgent.department})`
-        : 'Ticket created successfully'
+        : 'Ticket created successfully but is waiting because no agents are currently online'
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

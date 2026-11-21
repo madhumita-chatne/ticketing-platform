@@ -250,6 +250,28 @@ This document records all prompts given to Antigravity in this repository, the a
 
 ---
 
+### Prompt #13: Online/Offline Agent Availability for Auto-Assignment
+- **Date & Time**: `2026-11-21 14:12:30 +05:30`
+- **User Prompt**:
+  > *"i want you to make one more functionality in auto-assignment. Add one more attribute in agents table as status and have either online or offline status value, default should be online. when ticket is created, auto-assignement should check if agent is online first. only the users that are online, ticket should be autoassigned within them"*
+- **Intent**: Restrict automatic ticket assignment to agents whose availability status is `online`.
+- **Key Modules Affected**:
+  - Database: [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js), [`db-scripts.sql`](file:///Users/madhumita/ticketing-system/db-scripts.sql)
+  - Backend: [`server/src/routes/agents.js`](file:///Users/madhumita/ticketing-system/server/src/routes/agents.js), [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Frontend: [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`client/src/App.jsx`](file:///Users/madhumita/ticketing-platform/client/src/App.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-platform/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-platform/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Added an `status` column to the `agents` table with `online`/`offline` values and an `online` default.
+  - Added database migration logic for existing SQLite installations.
+  - Updated least-loaded agent selection to filter exclusively for `status = 'online'`.
+  - Added `PATCH /api/agents/:id/status` for availability changes.
+  - Added the online/offline control to the Agent workspace profile banner.
+  - Set an agent online after agent login and offline after logout.
+  - Updated bulk and specific auto-assignment behavior to use only online agents.
+- **Status**: ✅ Completed successfully.
+
+---
+
 ## 🔮 Future Prompts Log Register
 
 ```markdown

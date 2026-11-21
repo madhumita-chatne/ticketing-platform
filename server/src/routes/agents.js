@@ -47,4 +47,30 @@ router.get('/:id', (req, res) => {
   }
 });
 
+// PATCH /api/agents/:id/status - Set an agent as online or offline
+router.patch('/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['online', 'offline'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status must be online or offline' });
+    }
+
+    const agent = db.prepare('SELECT id, name, status FROM agents WHERE id = ?').get(id);
+    if (!agent) {
+      return res.status(404).json({ success: false, message: 'Agent not found' });
+    }
+
+    db.prepare('UPDATE agents SET status = ? WHERE id = ?').run(status, id);
+    res.json({
+      success: true,
+      data: { ...agent, status },
+      message: `${agent.name} is now ${status}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

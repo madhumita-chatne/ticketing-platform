@@ -29,6 +29,19 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
   const roleIcon = role === 'admin' ? Shield : Headphones;
   const roleColor = role === 'admin' ? '#4f46e5' : '#059669';
 
+  const updateAgentStatus = async (status) => {
+    if (role !== 'agent') return;
+    try {
+      await fetch(`${apiRoot}/agents/${selectedAgentId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+    } catch (err) {
+      console.error(`Failed to set agent ${status}:`, err);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!password.trim()) {
@@ -57,6 +70,7 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
         sessionStorage.setItem(storageKey, 'true');
         if (role === 'agent') {
           sessionStorage.setItem('ticketflow_logged_agent_id', String(selectedAgentId));
+          await updateAgentStatus('online');
         }
         setIsAuthenticated(true);
       } else {
@@ -68,6 +82,7 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
         sessionStorage.setItem(storageKey, 'true');
         if (role === 'agent') {
           sessionStorage.setItem('ticketflow_logged_agent_id', String(selectedAgentId));
+          await updateAgentStatus('online');
         }
         setIsAuthenticated(true);
       } else {
@@ -78,7 +93,10 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (role === 'agent') {
+      await updateAgentStatus('offline');
+    }
     sessionStorage.removeItem(storageKey);
     if (role === 'agent') {
       sessionStorage.removeItem('ticketflow_logged_agent_id');

@@ -19,7 +19,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 
-export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
+export default function AgentScreen({ apiBase, agentsApiBase, agents = [], onTicketUpdated }) {
   // Currently active agent retrieved from the authenticated session
   const [selectedAgentId] = useState(() => {
     const saved = sessionStorage.getItem('ticketflow_logged_agent_id');
@@ -46,6 +46,7 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
   const [agentComment, setAgentComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentSuccess, setCommentSuccess] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Fetch tickets assigned to the logged-in agent
   const fetchAgentTickets = async () => {
@@ -69,6 +70,28 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
   }, [selectedAgentId]);
 
   const activeAgent = agents.find((a) => a.id === Number(selectedAgentId)) || agents[0];
+
+  const handleAvailabilityChange = async () => {
+    if (!activeAgent || !agentsApiBase) return;
+
+    const nextStatus = activeAgent.status === 'offline' ? 'online' : 'offline';
+    try {
+      setUpdatingStatus(true);
+      const res = await fetch(`${agentsApiBase}/${activeAgent.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.success && onTicketUpdated) {
+        onTicketUpdated();
+      }
+    } catch (err) {
+      console.error('Failed to update availability:', err);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   // Open ticket detail & comments
   const handleOpenTicket = async (ticket) => {
@@ -207,7 +230,9 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span className="agent-badge-pill">Support Agent Workspace</span>
-              <span className="agent-status-online">● Active</span>
+              <span className={activeAgent?.status === 'offline' ? 'agent-status-offline' : 'agent-status-online'}>
+                ● {activeAgent?.status === 'offline' ? 'Offline' : 'Online'}
+              </span>
             </div>
             <h2 className="agent-name-title">{activeAgent?.name || 'Support Agent'}</h2>
             <div className="agent-meta-line">
@@ -232,6 +257,18 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
             <Check size={14} />
             <span>Logged in as {activeAgent?.name?.split(' ')[0] || 'Agent'}</span>
           </div>
+          <button
+            type="button"
+            className={`agent-availability-toggle ${activeAgent?.status === 'offline' ? 'offline' : 'online'}`}
+            onClick={handleAvailabilityChange}
+            disabled={updatingStatus || !activeAgent}
+          >
+            {updatingStatus
+              ? 'Updating...'
+              : activeAgent?.status === 'offline'
+                ? 'Go Online'
+                : 'Go Offline'}
+          </button>
           <span className="agent-active-workload">
             {stats.open + stats.inProgress} Active Ticket{(stats.open + stats.inProgress) === 1 ? '' : 's'}
           </span>

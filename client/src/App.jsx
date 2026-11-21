@@ -271,6 +271,7 @@ export default function App() {
         <div className="app-container">
           <AgentScreen
             apiBase={API_TICKETS}
+            agentsApiBase={API_AGENTS}
             agents={agents}
             onTicketUpdated={() => {
               fetchTicketsAndStats();

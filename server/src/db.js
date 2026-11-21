@@ -27,6 +27,7 @@ export function initDatabase() {
       role TEXT DEFAULT 'Support Specialist',
       department TEXT DEFAULT 'Customer Support',
       avatar_color TEXT DEFAULT '#4f46e5',
+      status TEXT CHECK(status IN ('online', 'offline')) DEFAULT 'online',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -75,6 +76,12 @@ export function initDatabase() {
     db.exec("ALTER TABLE comments ADD COLUMN author_role TEXT DEFAULT 'agent'");
   }
 
+  // Migrate agents table if status is missing
+  const agentCols = db.prepare("PRAGMA table_info(agents)").all().map(c => c.name);
+  if (!agentCols.includes('status')) {
+    db.exec("ALTER TABLE agents ADD COLUMN status TEXT CHECK(status IN ('online', 'offline')) DEFAULT 'online'");
+  }
+
   // Seed default 5 agents if agents table is empty
   seedAgents();
 
@@ -90,8 +97,8 @@ export function seedAgents() {
   if (agentCount > 0) return;
 
   const insertAgent = db.prepare(`
-    INSERT INTO agents (name, email, role, department, avatar_color)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO agents (name, email, role, department, avatar_color, status)
+    VALUES (?, ?, ?, ?, ?, 'online')
   `);
 
   const initialAgents = [

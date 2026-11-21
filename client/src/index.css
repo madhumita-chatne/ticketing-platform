@@ -1047,6 +1047,12 @@ button, input, select, textarea {
   color: #10b981;
 }
 
+.agent-status-offline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .agent-name-title {
   font-size: 1.4rem;
   font-weight: 800;
@@ -1481,6 +1487,30 @@ button, input, select, textarea {
 .roster-role {
   font-size: 0.65rem;
   color: var(--text-muted);
+}
+
+.agent-availability-toggle {
+  border: 0;
+  border-radius: 9999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.agent-availability-toggle.online {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.agent-availability-toggle.offline {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.agent-availability-toggle:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .roster-count {
