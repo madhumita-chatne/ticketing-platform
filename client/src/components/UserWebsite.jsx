@@ -708,7 +708,7 @@ export default function UserWebsite({ apiBase }) {
                 >
                   <div className="complaint-card-top">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span className="complaint-id">#{t.id}</span>
+                      {/* <span className="complaint-id">#{t.id}</span> */}
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
                       <span className="ticket-category">{t.category}</span>
                     </div>
