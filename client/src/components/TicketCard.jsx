@@ -103,7 +103,7 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
           >
             <Edit3 size={14} />
           </button>
-          <button
+          {/* <button
             className="btn-icon"
             style={{ color: '#ef4444' }}
             onClick={(e) => {
@@ -113,7 +113,7 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
             title="Delete ticket"
           >
             <Trash2 size={14} />
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

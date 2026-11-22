@@ -329,7 +329,7 @@ export default function AgentScreen({ apiBase, agentsApiBase, agents = [], onTic
           {/* Controls: Filtering, Sorting, and View Switcher */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {/* Priority Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <Filter size={14} style={{ color: '#64748b' }} />
               <select
                 className="filter-select"
@@ -343,7 +343,7 @@ export default function AgentScreen({ apiBase, agentsApiBase, agents = [], onTic
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
-            </div>
+            </div> */}
 
             {/* Sorting Dropdown */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>

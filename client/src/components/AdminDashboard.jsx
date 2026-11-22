@@ -102,7 +102,7 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Agents Roster Bar with Online / Offline Availability Indicators */}
+      {/* Agents Roster Bar with Online / Offline Availability Indicators
       <div className="agents-roster-bar">
         <div className="roster-title">
           <Shield size={16} color="#4f46e5" />
@@ -161,7 +161,7 @@ export default function AdminDashboard({
             <span>⚡ Auto-Assign ({stats.unassigned})</span>
           </button>
         )}
-      </div>
+      </div> */}
 
       {/* Stats Summary Cards */}
       <div className="stats-grid">

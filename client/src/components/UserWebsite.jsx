@@ -502,7 +502,7 @@ export default function UserWebsite({ apiBase }) {
               </div>
 
               {/* Priority Filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              {/* <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <Layers size={14} style={{ color: '#64748b' }} />
                 <select
                   className="filter-select"
@@ -516,7 +516,7 @@ export default function UserWebsite({ apiBase }) {
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Refresh Button */}
               <button
