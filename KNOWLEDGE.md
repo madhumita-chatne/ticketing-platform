@@ -72,6 +72,7 @@ The database file resides at [`server/database.sqlite`](file:///Users/madhumita/
    │ role            TEXT           │           │
    │ department      TEXT           │           │
    │ avatar_color    TEXT           │           │
+   │ status          TEXT           │ (online, offline)
    │ created_at      DATETIME       │           │
    └────────────────────────────────┘           │ (1 to Many)
                                                 │ agent_id
@@ -143,6 +144,7 @@ server/
 | `GET` | `/api/health` | Health check and SQLite database status |
 | `GET` | `/api/agents` | List all 5 agents with assigned ticket statistics & real-time `active_load` |
 | `GET` | `/api/agents/:id` | Get details and ticket list for a specific agent |
+| `PATCH` | `/api/agents/:id/status` | Set agent availability: `{ "status": "online" \| "offline" }` |
 | `GET` | `/api/tickets` | Query tickets. Filters: `ids`, `status`, `priority`, `category`, `agent_id`, `search`, `customer_email`, `sortBy`, `order` |
 | `GET` | `/api/tickets/stats` | Aggregated metrics for status and priority counts |
 | `GET` | `/api/tickets/:id` | Get ticket with agent details and full comments thread |
@@ -175,10 +177,12 @@ SELECT
   a.role,
   a.department,
   a.avatar_color,
+  a.status,
   COUNT(CASE WHEN t.status IN ('open', 'in_progress') THEN 1 END) AS active_load,
   COUNT(t.id) AS total_assigned
 FROM agents a
 LEFT JOIN tickets t ON t.agent_id = a.id
+WHERE a.status = 'online'
 GROUP BY a.id
 ORDER BY active_load ASC, total_assigned ASC, a.id ASC
 LIMIT 1;
@@ -209,8 +213,8 @@ Both the React client and the Express backend enforce strict validation rules to
 
 | Field | Rules & Constraints | Error Message |
 | :--- | :--- | :--- |
-| **Subject / Title** | Required, 5 to 150 characters, trimmed | *"Subject must be at least 5 characters (min 5, max 150)."* |
-| **Description** | Required, 15 to 3000 characters, trimmed | *"Please provide at least 15 characters describing your concern."* |
+| **Subject / Title** | Required, non-empty, trimmed (no character count limits) | *"Concern subject is required."* |
+| **Description** | Required, non-empty, trimmed (no character count limits) | *"Detailed description is required."* |
 | **Customer Name** | Required, 2 to 80 characters | *"Your name is required (min 2 characters)."* |
 | **Customer Email** | Required, RFC 5322 regex (`name@domain.com`) | *"Please enter a valid email address."* |
 | **Category** | Allowed: `Complaint`, `Billing`, `Technical`, `Product`, `General` | *"Please select a valid category."* |
@@ -219,7 +223,7 @@ Both the React client and the Express backend enforce strict validation rules to
 ### Interactive Client Validation Experience:
 - **Real-Time On-Blur**: Individual fields validate when the user tabs or clicks away.
 - **Visual Feedback**: Invalid inputs are outlined with red borders (`.input-error`) and show an error badge with an `<AlertCircle />` icon.
-- **Live Character Counters**: Displays live character counts (e.g., `12/150` for subject, `45/3000` for description).
+- **Non-Empty Requirements**: Subject and Description only require being non-empty without minimum or maximum character limits.
 - **Submission Guard**: Blocks dispatching network requests if any validation constraint is unmet and surfaces a top-level summary banner.
 
 ---
@@ -243,8 +247,9 @@ The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhum
     - Status filter dropdown (`all`, `open`, `in_progress`, `resolved`, `closed`).
     - Priority filter dropdown (`all`, `urgent`, `high`, `medium`, `low`).
     - Email lookup bar to filter specifically to any user email.
-    - Real-time card display with ID, status, priority, category, assigned specialist pill, and comments counter.
-  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card (positioned at `z-index: 1000` with `calc(100vh - 5rem)` clearance to eliminate collisions with the sticky top navbar).
+    - View mode toggle between **List Table View** and **Card Grid View**.
+    - Real-time card/table display with ID, status, priority, category, assigned specialist pill, logged timestamp, and comments counter.
+  - Dedicated concern details and interactive communication modal allowing direct replies from the customer when clicking any ticket card (positioned at `z-index: 2000 !important` with `calc(100vh - 5rem)` clearance to eliminate collisions with the sticky top navbar).
   - Clean footer without staff portal links.
 
 ### 2. 🛡️ Admin Portal (`/admin`) — *Basic Auth Protected*
@@ -252,6 +257,8 @@ The frontend is built with React 18 and Vite in [`client/`](file:///Users/madhum
 - **Authentication**: Requires the common password.
 - **Clean Interface**: **No "New Ticket" button** is shown in the Admin view (all tickets originate directly from customer concerns on the Homepage).
 - **Features**:
+  - **Real-Time Agent Availability & Roster Bar**: Prominently shows which agents are **Online** (green indicator dot & badge) or **Offline** (gray indicator dot & badge), with live summary count (`X Online / Y Total`), active workloads, and direct one-click toggle controls.
+  - **Status Visibility Across All Dropdowns**: Both the Filter Bar and the Table View inline assignment dropdowns display `[Online]` / `[Offline]` status next to each specialist.
   - Active workload counters for all 5 support agents in the roster bar.
   - Kanban board with drag/status columns (`Open`, `In Progress`, `Resolved`, `Closed`).
   - Table view with inline agent assignment dropdowns (supports manual assignment or `⚡ Auto-Assign`).
@@ -365,8 +372,17 @@ cd server && npm run dev
 cd client && npm run dev
 ```
 
-### Database Maintenance
+### Database Maintenance & Diagnostics
 ```bash
+# Check SQLite database integrity
+sqlite3 server/database.sqlite "PRAGMA integrity_check;"
+
+# Flush WAL journal directly into main database and truncate WAL file
+sqlite3 server/database.sqlite "PRAGMA wal_checkpoint(TRUNCATE);"
+
+# Re-seed database with 5 agents, 12 tickets, and full discussion threads
+npm run db:seed
+
 # Truncate all tickets and comments (keeps 5 agents intact)
 npm run db:clear
 

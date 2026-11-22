@@ -225,10 +225,28 @@ export default function App() {
     }
   };
 
+  // Toggle agent online / offline availability
+  const handleToggleAgentStatus = async (agentId, currentStatus) => {
+    try {
+      const nextStatus = currentStatus === 'offline' ? 'online' : 'offline';
+      const res = await fetch(`${API_AGENTS}/${agentId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await Promise.all([fetchTicketsAndStats(), fetchAgents()]);
+      }
+    } catch (err) {
+      console.error('Failed to update agent status:', err);
+    }
+  };
+
   // 1. ADMIN PATH: /admin (Protected by Basic Auth)
   if (currentPath === '/admin') {
     return (
-      <AuthGate role="admin" onNavigate={navigateTo} apiRoot={API_ROOT}>
+      <AuthGate role="admin" onNavigate={navigateTo} apiRoot={API_ROOT} agents={agents}>
         <div className="app-container">
           <AdminDashboard
             tickets={tickets}
@@ -257,6 +275,7 @@ export default function App() {
             onDeleteTicket={handleDeleteTicket}
             onAssignAgent={handleAssignAgent}
             onAutoAssignAll={handleAutoAssignAll}
+            onToggleAgentStatus={handleToggleAgentStatus}
             apiBase={API_TICKETS}
           />
         </div>
@@ -271,6 +290,7 @@ export default function App() {
         <div className="app-container">
           <AgentScreen
             apiBase={API_TICKETS}
+            agentsApiBase={API_AGENTS}
             agents={agents}
             onTicketUpdated={() => {
               fetchTicketsAndStats();

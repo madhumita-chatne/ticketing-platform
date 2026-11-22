@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, Shield, Headphones, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield, Headphones, ArrowLeft } from 'lucide-react';
 
 export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot = '/api', agents = [] }) {
   const storageKey = `ticketflow_auth_${role}`;
@@ -29,6 +29,19 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
   const roleIcon = role === 'admin' ? Shield : Headphones;
   const roleColor = role === 'admin' ? '#4f46e5' : '#059669';
 
+  const updateAgentStatus = async (status) => {
+    if (role !== 'agent') return;
+    try {
+      await fetch(`${apiRoot}/agents/${selectedAgentId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+    } catch (err) {
+      console.error(`Failed to set agent ${status}:`, err);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!password.trim()) {
@@ -57,6 +70,7 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
         sessionStorage.setItem(storageKey, 'true');
         if (role === 'agent') {
           sessionStorage.setItem('ticketflow_logged_agent_id', String(selectedAgentId));
+          await updateAgentStatus('online');
         }
         setIsAuthenticated(true);
       } else {
@@ -68,6 +82,7 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
         sessionStorage.setItem(storageKey, 'true');
         if (role === 'agent') {
           sessionStorage.setItem('ticketflow_logged_agent_id', String(selectedAgentId));
+          await updateAgentStatus('online');
         }
         setIsAuthenticated(true);
       } else {
@@ -78,7 +93,10 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (role === 'agent') {
+      await updateAgentStatus('offline');
+    }
     sessionStorage.removeItem(storageKey);
     if (role === 'agent') {
       sessionStorage.removeItem('ticketflow_logged_agent_id');
@@ -230,10 +248,6 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
           <span className="session-role-badge" style={{ backgroundColor: roleColor }}>
             {roleTitle} Active
           </span>
-          <span className="session-auth-badge">
-            <CheckCircle2 size={13} color="#10b981" />
-            <span>Authenticated</span>
-          </span>
         </div>
         <div className="session-right">
           <button
@@ -245,14 +259,23 @@ export default function AuthGate({ role = 'admin', onNavigate, children, apiRoot
             Homepage
           </button>
           {role === 'admin' && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => onNavigate && onNavigate('/agent')}
-              title="Go to Agent Workspace"
+            <select
+              className="filter-select"
+              defaultValue=""
+              aria-label="Select an agent for Agent Workspace"
+              title="Open Agent Workspace"
+              onChange={(e) => {
+                const agentId = e.target.value;
+                if (!agentId) return;
+                sessionStorage.setItem('ticketflow_logged_agent_id', agentId);
+                if (onNavigate) onNavigate('/agent');
+              }}
             >
-              Agent Workspace
-            </button>
+              <option value="" disabled>Agent Workspace</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>{agent.name}</option>
+              ))}
+            </select>
           )}
           <button
             type="button"

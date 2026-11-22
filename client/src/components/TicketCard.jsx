@@ -1,7 +1,8 @@
 import React from 'react';
 import { Clock, User, Headphones, MessageSquare, Edit3, Trash2 } from 'lucide-react';
+import { formatTicketDueDate, getUrgentOverdueLabel } from '../utils.js';
 
-export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onStatusChange, onAssignAgent }) {
+export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onStatusChange, onAssignAgent, currentTime }) {
   const getInitials = (name) => {
     if (!name || name === 'Unassigned') return '?';
     return name
@@ -15,7 +16,10 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
   const hasAgent = ticket.agent_id && ticket.assignee !== 'Unassigned';
 
   return (
-    <div className="ticket-card" onClick={() => onEdit(ticket)}>
+    <div
+      className={`ticket-card ${ticket.priority === 'urgent' ? 'urgent-ticket-card' : ''}`}
+      onClick={() => onEdit(ticket)}
+    >
       <div className="card-top">
         <span className="ticket-id">#{ticket.id}</span>
         <span className="ticket-category">{ticket.category}</span>
@@ -48,6 +52,18 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
           </span>
         )}
       </div>
+
+      <div className={`ticket-due-date ${ticket.priority === 'urgent' ? 'urgent-ticket-due' : ''}`}>
+        <Clock size={12} />
+        <span>Due: {formatTicketDueDate(ticket)}</span>
+      </div>
+
+      {getUrgentOverdueLabel(ticket, currentTime) && (
+        <div className="urgent-overdue-badge">
+          <Clock size={12} />
+          <span>{getUrgentOverdueLabel(ticket, currentTime)}</span>
+        </div>
+      )}
 
       <div className="card-footer" onClick={(e) => e.stopPropagation()}>
         {/* Quick Assign Agent Dropdown */}
@@ -87,7 +103,7 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
           >
             <Edit3 size={14} />
           </button>
-          <button
+          {/* <button
             className="btn-icon"
             style={{ color: '#ef4444' }}
             onClick={(e) => {
@@ -97,7 +113,7 @@ export default function TicketCard({ ticket, agents = [], onEdit, onDelete, onSt
             title="Delete ticket"
           >
             <Trash2 size={14} />
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

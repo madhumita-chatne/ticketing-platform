@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getUrgentTimerLabel } from '../utils.js';
 import { 
   Headphones, 
   CheckCircle2, 
@@ -19,7 +20,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 
-export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
+export default function AgentScreen({ apiBase, agentsApiBase, agents = [], onTicketUpdated }) {
   // Currently active agent retrieved from the authenticated session
   const [selectedAgentId] = useState(() => {
     const saved = sessionStorage.getItem('ticketflow_logged_agent_id');
@@ -28,6 +29,12 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // View mode: default to 'list' view as requested
   const [viewMode, setViewMode] = useState('list');
@@ -46,6 +53,7 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
   const [agentComment, setAgentComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentSuccess, setCommentSuccess] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Fetch tickets assigned to the logged-in agent
   const fetchAgentTickets = async () => {
@@ -69,6 +77,28 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
   }, [selectedAgentId]);
 
   const activeAgent = agents.find((a) => a.id === Number(selectedAgentId)) || agents[0];
+
+  const handleAvailabilityChange = async () => {
+    if (!activeAgent || !agentsApiBase) return;
+
+    const nextStatus = activeAgent.status === 'offline' ? 'online' : 'offline';
+    try {
+      setUpdatingStatus(true);
+      const res = await fetch(`${agentsApiBase}/${activeAgent.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.success && onTicketUpdated) {
+        onTicketUpdated();
+      }
+    } catch (err) {
+      console.error('Failed to update availability:', err);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   // Open ticket detail & comments
   const handleOpenTicket = async (ticket) => {
@@ -207,7 +237,9 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span className="agent-badge-pill">Support Agent Workspace</span>
-              <span className="agent-status-online">● Active</span>
+              <span className={activeAgent?.status === 'offline' ? 'agent-status-offline' : 'agent-status-online'}>
+                ● {activeAgent?.status === 'offline' ? 'Offline' : 'Online'}
+              </span>
             </div>
             <h2 className="agent-name-title">{activeAgent?.name || 'Support Agent'}</h2>
             <div className="agent-meta-line">
@@ -232,6 +264,18 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
             <Check size={14} />
             <span>Logged in as {activeAgent?.name?.split(' ')[0] || 'Agent'}</span>
           </div>
+          <button
+            type="button"
+            className={`agent-availability-toggle ${activeAgent?.status === 'offline' ? 'offline' : 'online'}`}
+            onClick={handleAvailabilityChange}
+            disabled={updatingStatus || !activeAgent}
+          >
+            {updatingStatus
+              ? 'Updating...'
+              : activeAgent?.status === 'offline'
+                ? 'Go Online'
+                : 'Go Offline'}
+          </button>
           <span className="agent-active-workload">
             {stats.open + stats.inProgress} Active Ticket{(stats.open + stats.inProgress) === 1 ? '' : 's'}
           </span>
@@ -285,7 +329,7 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
           {/* Controls: Filtering, Sorting, and View Switcher */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {/* Priority Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <Filter size={14} style={{ color: '#64748b' }} />
               <select
                 className="filter-select"
@@ -299,7 +343,7 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
-            </div>
+            </div> */}
 
             {/* Sorting Dropdown */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -393,6 +437,12 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                     </td>
                     <td>
                       <span className={`badge badge-priority-${t.priority}`}>{t.priority}</span>
+                      {getUrgentTimerLabel(t, currentTime) && (
+                        <div className={`urgent-overdue-badge ${getUrgentTimerLabel(t, currentTime).type === 'countdown' ? 'urgent-countdown-badge' : ''}`} style={{ marginTop: '0.35rem' }}>
+                          <Clock size={11} />
+                          <span>{getUrgentTimerLabel(t, currentTime).text}</span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={`badge badge-status-${t.status}`}>
@@ -460,6 +510,13 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                   </div>
                 </div>
 
+                {getUrgentTimerLabel(t, currentTime) && (
+                  <div className={`urgent-overdue-badge ${getUrgentTimerLabel(t, currentTime).type === 'countdown' ? 'urgent-countdown-badge' : ''}`} style={{ marginBottom: '0.75rem' }}>
+                    <Clock size={12} />
+                    <span>{getUrgentTimerLabel(t, currentTime).text}</span>
+                  </div>
+                )}
+
                 <h3 className="complaint-subject">{t.title || t.subject}</h3>
                 <p className="complaint-concern">{t.description || 'No description provided.'}</p>
 
@@ -500,6 +557,12 @@ export default function AgentScreen({ apiBase, agents = [], onTicketUpdated }) {
                   <span className={`badge badge-priority-${ticketDetails?.priority || activeTicket.priority}`}>
                     {ticketDetails?.priority || activeTicket.priority}
                   </span>
+                  {getUrgentTimerLabel(ticketDetails || activeTicket, currentTime) && (
+                    <span className={`urgent-overdue-badge ${getUrgentTimerLabel(ticketDetails || activeTicket, currentTime).type === 'countdown' ? 'urgent-countdown-badge' : ''}`}>
+                      <Clock size={12} />
+                      {getUrgentTimerLabel(ticketDetails || activeTicket, currentTime).text}
+                    </span>
+                  )}
                   <span className="ticket-category">{ticketDetails?.category || activeTicket.category}</span>
                 </div>
                 <h3>{ticketDetails?.title || ticketDetails?.subject || activeTicket.title}</h3>

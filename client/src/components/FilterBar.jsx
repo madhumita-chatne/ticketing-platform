@@ -37,10 +37,12 @@ export default function FilterBar({
           aria-label="Filter by Assigned Agent"
         >
           <option value="all">All Agents</option>
-          <option value="unassigned">Unassigned Only</option>
+         
+          {/* <option value="unassigned">Unassigned Only</option>  todo*/} 
+        
           {agents.map((agent) => (
             <option key={agent.id} value={agent.id}>
-              {agent.name} ({agent.department})
+              {agent.name} [{agent.status === 'offline' ? 'Offline' : 'Online'}] — {agent.department}
             </option>
           ))}
         </select>
@@ -58,7 +60,7 @@ export default function FilterBar({
           <option value="closed">Closed</option>
         </select>
 
-        <select
+        {/* <select
           className="filter-select"
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
@@ -69,9 +71,9 @@ export default function FilterBar({
           <option value="high">High</option>
           <option value="medium">Medium</option>
           <option value="low">Low</option>
-        </select>
+        </select> */}
 
-        <select
+        {/* <select
           className="filter-select"
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
@@ -87,7 +89,7 @@ export default function FilterBar({
           <option value="DevOps">DevOps</option>
           <option value="Security">Security</option>
           <option value="Documentation">Documentation</option>
-        </select>
+        </select> */}
 
         <div className="view-toggle">
           <button

@@ -1,5 +1,6 @@
 import express from 'express';
 import { db } from '../db.js';
+import { calculateDueAt } from '../sla.js';
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ export function getLeastLoadedAgent() {
       COUNT(t.id) AS total_assigned
     FROM agents a
     LEFT JOIN tickets t ON t.agent_id = a.id
+    WHERE a.status = 'online'
     GROUP BY a.id
     ORDER BY active_load ASC, total_assigned ASC, a.id ASC
     LIMIT 1
@@ -236,22 +238,10 @@ router.post('/', (req, res) => {
     if (!ticketTitle) {
       return res.status(400).json({ success: false, message: 'Concern subject/title is required' });
     }
-    if (ticketTitle.length < 5 || ticketTitle.length > 150) {
-      return res.status(400).json({
-        success: false,
-        message: 'Concern subject must be between 5 and 150 characters'
-      });
-    }
 
     const ticketDesc = (description || '').trim();
     if (!ticketDesc) {
       return res.status(400).json({ success: false, message: 'Concern description is required' });
-    }
-    if (ticketDesc.length < 15 || ticketDesc.length > 3000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Concern description must be between 15 and 3000 characters'
-      });
     }
 
     const custName = (customer_name || '').trim();
@@ -311,9 +301,15 @@ router.post('/', (req, res) => {
       }
     }
 
+    const urgentStart = priority === 'urgent' && targetAgentId ? new Date().toISOString() : null;
+    const urgentDue = urgentStart ? calculateDueAt(urgentStart, 'urgent') : null;
+    const initialDue = priority === 'urgent'
+      ? urgentDue
+      : calculateDueAt(new Date(), priority);
+
     const stmt = db.prepare(`
-      INSERT INTO tickets (title, description, status, priority, category, assignee, agent_id, customer_name, customer_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tickets (title, description, status, priority, category, assignee, agent_id, customer_name, customer_email, due_at, urgent_started_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -325,7 +321,9 @@ router.post('/', (req, res) => {
       targetAssignee,
       targetAgentId,
       customer_name.trim() || 'Customer',
-      customer_email.trim()
+      customer_email.trim(),
+      initialDue,
+      urgentStart
     );
 
     const ticketId = result.lastInsertRowid;
@@ -355,7 +353,7 @@ router.post('/', (req, res) => {
       auto_assigned: Boolean(assignedAgent),
       message: assignedAgent 
         ? `Ticket created and auto-assigned to ${assignedAgent.name} (${assignedAgent.department})`
-        : 'Ticket created successfully'
+        : 'Ticket created successfully but is waiting because no agents are currently online'
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -366,7 +364,7 @@ router.post('/', (req, res) => {
 router.post('/:id/auto-assign', (req, res) => {
   try {
     const { id } = req.params;
-    const ticket = db.prepare('SELECT id, title, customer_name FROM tickets WHERE id = ?').get(id);
+    const ticket = db.prepare('SELECT id, title, customer_name, priority, urgent_started_at FROM tickets WHERE id = ?').get(id);
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
@@ -376,11 +374,26 @@ router.post('/:id/auto-assign', (req, res) => {
       return res.status(400).json({ success: false, message: 'No available agents found' });
     }
 
-    db.prepare(`
-      UPDATE tickets 
-      SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(leastLoaded.id, leastLoaded.name, id);
+    if (ticket.priority === 'urgent' && !ticket.urgent_started_at) {
+      const urgentStartedAt = new Date();
+      db.prepare(`
+        UPDATE tickets 
+        SET agent_id = ?, assignee = ?, urgent_started_at = ?, due_at = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(
+        leastLoaded.id,
+        leastLoaded.name,
+        urgentStartedAt.toISOString(),
+        calculateDueAt(urgentStartedAt, 'urgent'),
+        id
+      );
+    } else {
+      db.prepare(`
+        UPDATE tickets 
+        SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(leastLoaded.id, leastLoaded.name, id);
+    }
 
     // Record comment about auto-assignment
     db.prepare(`
@@ -413,7 +426,7 @@ router.post('/:id/auto-assign', (req, res) => {
 router.post('/auto-assign-all', (req, res) => {
   try {
     const unassignedTickets = db.prepare(`
-      SELECT id, title, customer_name 
+      SELECT id, title, customer_name, priority, urgent_started_at
       FROM tickets 
       WHERE agent_id IS NULL OR assignee = 'Unassigned'
       ORDER BY created_at ASC
@@ -423,8 +436,23 @@ router.post('/auto-assign-all', (req, res) => {
     for (const t of unassignedTickets) {
       const leastLoaded = getLeastLoadedAgent();
       if (leastLoaded) {
-        db.prepare('UPDATE tickets SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-          .run(leastLoaded.id, leastLoaded.name, t.id);
+        if (t.priority === 'urgent' && !t.urgent_started_at) {
+          const urgentStartedAt = new Date();
+          db.prepare(`
+            UPDATE tickets
+            SET agent_id = ?, assignee = ?, urgent_started_at = ?, due_at = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).run(
+            leastLoaded.id,
+            leastLoaded.name,
+            urgentStartedAt.toISOString(),
+            calculateDueAt(urgentStartedAt, 'urgent'),
+            t.id
+          );
+        } else {
+          db.prepare('UPDATE tickets SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(leastLoaded.id, leastLoaded.name, t.id);
+        }
         
         db.prepare(`
           INSERT INTO comments (ticket_id, author, author_role, content)
@@ -495,6 +523,7 @@ router.patch('/:id', (req, res) => {
       }
     }
 
+    let priorityChanged = false;
     if (priority !== undefined) {
       const validPriorities = ['low', 'medium', 'high', 'urgent'];
       if (!validPriorities.includes(priority)) {
@@ -502,6 +531,7 @@ router.patch('/:id', (req, res) => {
       }
       updates.push('priority = ?');
       params.push(priority);
+      priorityChanged = priority !== ticket.priority;
     }
 
     if (category !== undefined) {
@@ -559,6 +589,31 @@ router.patch('/:id', (req, res) => {
       params.push(targetAgentId, targetAssignee);
     }
 
+    const effectivePriority = priority !== undefined ? priority : ticket.priority;
+    const effectiveAssigned = finalAssignee !== 'Unassigned';
+
+    if (priorityChanged && effectivePriority !== 'urgent') {
+      updates.push('urgent_started_at = NULL', 'due_at = ?');
+      params.push(calculateDueAt(ticket.created_at, effectivePriority));
+    } else if (
+      effectivePriority === 'urgent'
+      && effectiveAssigned
+      && (
+        !ticket.urgent_started_at
+        || (priorityChanged && ticket.priority !== 'urgent')
+      )
+      && (priorityChanged || assignmentChanged)
+    ) {
+      const urgentStartedAt = new Date();
+      updates.push('urgent_started_at = ?', 'due_at = ?');
+      params.push(urgentStartedAt.toISOString(), calculateDueAt(urgentStartedAt, 'urgent'));
+    } else if (
+      effectivePriority === 'urgent'
+      && !effectiveAssigned
+    ) {
+      updates.push('urgent_started_at = NULL', 'due_at = NULL');
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ success: false, message: 'No valid fields provided for update' });
     }
@@ -613,7 +668,7 @@ router.post('/:id/assign', (req, res) => {
     const { agent_id, agentId } = req.body;
     const targetId = agent_id !== undefined ? agent_id : agentId;
 
-    const ticket = db.prepare('SELECT id FROM tickets WHERE id = ?').get(id);
+    const ticket = db.prepare('SELECT id, agent_id, priority, urgent_started_at FROM tickets WHERE id = ?').get(id);
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
@@ -634,11 +689,32 @@ router.post('/:id/assign', (req, res) => {
 
     const wasDifferent = ticket.agent_id !== assignedAgentId;
 
-    db.prepare(`
-      UPDATE tickets 
-      SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(assignedAgentId, assigneeName, id);
+    if (assignedAgentId && ticket.priority === 'urgent' && !ticket.urgent_started_at) {
+      const urgentStartedAt = new Date();
+      db.prepare(`
+        UPDATE tickets
+        SET agent_id = ?, assignee = ?, urgent_started_at = ?, due_at = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(
+        assignedAgentId,
+        assigneeName,
+        urgentStartedAt.toISOString(),
+        calculateDueAt(urgentStartedAt, 'urgent'),
+        id
+      );
+    } else if (!assignedAgentId && ticket.priority === 'urgent') {
+      db.prepare(`
+        UPDATE tickets
+        SET agent_id = ?, assignee = ?, urgent_started_at = NULL, due_at = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(assignedAgentId, assigneeName, id);
+    } else {
+      db.prepare(`
+        UPDATE tickets
+        SET agent_id = ?, assignee = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(assignedAgentId, assigneeName, id);
+    }
 
     if (wasDifferent) {
       db.prepare(`

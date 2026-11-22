@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { seedFullDatabase } from './seed.js';
+import { calculateDueAt } from './sla.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +29,7 @@ export function initDatabase() {
       role TEXT DEFAULT 'Support Specialist',
       department TEXT DEFAULT 'Customer Support',
       avatar_color TEXT DEFAULT '#4f46e5',
+      status TEXT CHECK(status IN ('online', 'offline')) DEFAULT 'online',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -43,6 +46,8 @@ export function initDatabase() {
       customer_email TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      due_at DATETIME,
+      urgent_started_at DATETIME,
       FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL
     );
 
@@ -68,11 +73,40 @@ export function initDatabase() {
   if (!ticketCols.includes('customer_email')) {
     db.exec("ALTER TABLE tickets ADD COLUMN customer_email TEXT DEFAULT ''");
   }
+  if (!ticketCols.includes('due_at')) {
+    db.exec("ALTER TABLE tickets ADD COLUMN due_at DATETIME");
+  }
+  if (!ticketCols.includes('urgent_started_at')) {
+    db.exec("ALTER TABLE tickets ADD COLUMN urgent_started_at DATETIME");
+  }
+
+  const ticketsWithoutDueDate = db.prepare(
+    'SELECT id, created_at, priority, agent_id, assignee FROM tickets WHERE due_at IS NULL'
+  ).all();
+  const setDueDate = db.prepare('UPDATE tickets SET due_at = ? WHERE id = ?');
+  for (const ticket of ticketsWithoutDueDate) {
+    const assigned = ticket.agent_id || (ticket.assignee && ticket.assignee !== 'Unassigned');
+    if (ticket.priority === 'urgent') {
+      if (assigned) {
+        const startedAt = new Date();
+        db.prepare('UPDATE tickets SET urgent_started_at = ?, due_at = ? WHERE id = ?')
+          .run(startedAt.toISOString(), calculateDueAt(startedAt, 'urgent'), ticket.id);
+      }
+    } else {
+      setDueDate.run(calculateDueAt(ticket.created_at, ticket.priority), ticket.id);
+    }
+  }
 
   // Migrate comments table if author_role is missing
   const commentCols = db.prepare("PRAGMA table_info(comments)").all().map(c => c.name);
   if (!commentCols.includes('author_role')) {
     db.exec("ALTER TABLE comments ADD COLUMN author_role TEXT DEFAULT 'agent'");
+  }
+
+  // Migrate agents table if status is missing
+  const agentCols = db.prepare("PRAGMA table_info(agents)").all().map(c => c.name);
+  if (!agentCols.includes('status')) {
+    db.exec("ALTER TABLE agents ADD COLUMN status TEXT CHECK(status IN ('online', 'offline')) DEFAULT 'online'");
   }
 
   // Seed default 5 agents if agents table is empty
@@ -90,8 +124,8 @@ export function seedAgents() {
   if (agentCount > 0) return;
 
   const insertAgent = db.prepare(`
-    INSERT INTO agents (name, email, role, department, avatar_color)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO agents (name, email, role, department, avatar_color, status)
+    VALUES (?, ?, ?, ?, ?, 'online')
   `);
 
   const initialAgents = [
@@ -113,60 +147,21 @@ export function seedAgents() {
 }
 
 export function seedDatabase() {
-  const insertTicket = db.prepare(`
-    INSERT INTO tickets (title, description, status, priority, category, assignee)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-
-  const sampleTickets = [
-    [
-      'Fix navigation bar layout on mobile screens',
-      'The hamburger menu is overlapping with the logo on screens smaller than 375px wide.',
-      'open',
-      'high',
-      'Frontend',
-      'Sarah Chen'
-    ],
-    [
-      'Optimize SQLite queries for dashboard stats',
-      'Add database indexing on status and priority columns to improve aggregation query speeds.',
-      'in_progress',
-      'medium',
-      'Backend',
-      'Alex Kumar'
-    ],
-    [
-      'Add user authentication & session management',
-      'Implement JWT-based authentication for team member logins and ticket role permissions.',
-      'open',
-      'urgent',
-      'Security',
-      'David Miller'
-    ],
-    [
-      'Resolve SSL certificate renewal warning',
-      'Automated cert-manager job failed to renew wildcard domain certificate.',
-      'resolved',
-      'high',
-      'DevOps',
-      'Elena Rostova'
-    ],
-    [
-      'Update API documentation for v1.2 release',
-      'Document the new ticket filtering parameters and comment endpoints in OpenAPI specs.',
-      'closed',
-      'low',
-      'Documentation',
-      'Maya Lin'
-    ]
-  ];
-
-  const insertMany = db.transaction((tickets) => {
-    for (const ticket of tickets) {
-      insertTicket.run(...ticket);
+  seedFullDatabase();
+  const ticketsWithoutDueDate = db.prepare(
+    'SELECT id, created_at, priority, agent_id, assignee FROM tickets WHERE due_at IS NULL'
+  ).all();
+  const setDueDate = db.prepare('UPDATE tickets SET due_at = ? WHERE id = ?');
+  for (const ticket of ticketsWithoutDueDate) {
+    const assigned = ticket.agent_id || (ticket.assignee && ticket.assignee !== 'Unassigned');
+    if (ticket.priority === 'urgent') {
+      if (assigned) {
+        const startedAt = new Date();
+        db.prepare('UPDATE tickets SET urgent_started_at = ?, due_at = ? WHERE id = ?')
+          .run(startedAt.toISOString(), calculateDueAt(startedAt, 'urgent'), ticket.id);
+      }
+    } else {
+      setDueDate.run(calculateDueAt(ticket.created_at, ticket.priority), ticket.id);
     }
-  });
-
-  insertMany(sampleTickets);
-  console.log('✅ SQLite database initialized and seeded with 5 sample tickets.');
+  }
 }

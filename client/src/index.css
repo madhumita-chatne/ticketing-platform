@@ -489,6 +489,62 @@ select:focus {
   background-color: var(--priority-urgent-bg);
   color: var(--priority-urgent-text);
 }
+
+.urgent-ticket-row td,
+.urgent-ticket-card {
+  border-color: #fecaca !important;
+  background-color: #fff7f7;
+}
+
+.urgent-ticket-row td:first-child {
+  box-shadow: inset 4px 0 0 #dc2626;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.urgent-ticket-due {
+  color: #dc2626 !important;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ticket-due-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.urgent-overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: urgent-overdue-pulse 1.8s ease-in-out infinite;
+}
+
+.urgent-countdown-badge {
+  border-color: #fdba74;
+  background: #ea580c;
+  animation: none;
+}
+
+@keyframes urgent-overdue-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.15); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12); }
+}
 .badge-priority-high {
   background-color: var(--priority-high-bg);
   color: var(--priority-high-text);
@@ -576,7 +632,7 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000 !important;
   padding: 2.5rem 1rem;
   overflow-y: auto;
 }
@@ -587,12 +643,13 @@ select:focus {
   width: 100%;
   max-width: 580px;
   max-height: calc(100vh - 5rem);
-  overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   position: relative;
+  z-index: 2001;
   margin: auto;
+  overflow: hidden;
 }
 
 .modal-header {
@@ -601,6 +658,11 @@ select:focus {
   align-items: center;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
+  background: white;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .modal-header h3 {
@@ -613,6 +675,16 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .form-group {
@@ -675,6 +747,7 @@ select:focus {
   background-color: #f8fafc;
   border-top: 1px solid var(--border-color);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-shrink: 0;
 }
 
 .modal-footer-right {
@@ -1094,6 +1167,12 @@ select:focus {
   color: #10b981;
 }
 
+.agent-status-offline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .agent-name-title {
   font-size: 1.4rem;
   font-weight: 800;
@@ -1242,6 +1321,7 @@ select:focus {
    ========================================== */
 .modal-large {
   max-width: 780px !important;
+  max-height: calc(100vh - 5rem) !important;
 }
 
 .conversation-modal-body {
@@ -1542,6 +1622,110 @@ select:focus {
 .roster-role {
   font-size: 0.65rem;
   color: var(--text-muted);
+}
+
+/* Agent Online/Offline Badges & Dots in Admin UI */
+.status-indicator-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+}
+
+.status-indicator-dot.online {
+  background-color: #10b981;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25);
+}
+
+.status-indicator-dot.offline {
+  background-color: #94a3b8;
+}
+
+.agent-status-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.agent-status-badge.badge-online {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.agent-status-badge.badge-online:hover {
+  background-color: #d1fae5;
+}
+
+.agent-status-badge.badge-offline {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.agent-status-badge.badge-offline:hover {
+  background-color: #e2e8f0;
+}
+
+.status-dot-mini {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot-mini.online {
+  background-color: #10b981;
+}
+
+.status-dot-mini.offline {
+  background-color: #94a3b8;
+}
+
+.roster-pill-offline {
+  opacity: 0.8;
+  border-style: dashed;
+}
+
+.roster-pill-offline:hover {
+  opacity: 1;
+}
+
+.agent-availability-toggle {
+  border: 0;
+  border-radius: 9999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.agent-availability-toggle.online {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.agent-availability-toggle.offline {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.agent-availability-toggle:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .roster-count {
@@ -2299,15 +2483,6 @@ select.filter-select.badge {
   border-radius: 9999px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.session-auth-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #059669;
 }
 
 .session-right {

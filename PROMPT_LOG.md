@@ -242,9 +242,17 @@ This document records all prompts given to Antigravity in this repository, the a
   - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
   - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
 - **Actions Taken**:
-  - Removed popup tracker modal and embedded an interactive tickets section (`#my-tickets-section`) directly at the end of the user screen.
-  - Wired navbar and hero track buttons to execute smooth scroll to the tickets section.
-  - Populated all tickets on mount and equipped with search, status filter, priority filter, and email lookup.
+  - **Removed Modal**: Completely removed `isTrackerModalOpen` and the tracker modal overlay popup.
+  - **In-Page Tickets Section ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Created `<section className="website-tickets-section" id="my-tickets-section">` at the end of the user screen directly preceding the footer.
+    - Loaded all tickets automatically on mount (`fetchTrackedTickets`).
+    - Equipped the section with a live search bar, status filter dropdown, priority filter dropdown, email lookup input, and refresh button.
+    - Rendered tickets in responsive complaint cards showing Ticket ID, Priority, Status, Category, Subject, Description preview, Assigned Specialist badge, timestamp, and comments count badge.
+    - Maintained direct conversation drawer access when clicking any ticket card.
+  - **Smooth Scrolling Navigation**:
+    - Both the Hero section button and top Navbar button invoke `scrollToTicketsSection()`, smoothly scrolling the viewport directly down to the tickets section.
+  - **Styling ([client/src/index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
+    - Added styles for `.website-tickets-section`, `.website-tickets-container`, `.website-tickets-toolbar`, and `.tickets-filter-controls`.
 - **Status**: ✅ Completed successfully.
 
 ---
@@ -292,6 +300,315 @@ This document records all prompts given to Antigravity in this repository, the a
     - Cleaned inline padding in `AdminDashboard.jsx` (table status badge select and agent select) and `AuthGate.jsx` (agent picker) to maintain right clearance for the custom dropdown chevrons.
 - **Verification**:
   - Built client successfully with `npm --prefix client run build` in 948ms.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #13: Online/Offline Agent Availability for Auto-Assignment
+- **Date & Time**: `2026-11-21 14:12:30 +05:30`
+- **User Prompt**:
+  > *"i want you to make one more functionality in auto-assignment. Add one more attribute in agents table as status and have either online or offline status value, default should be online. when ticket is created, auto-assignement should check if agent is online first. only the users that are online, ticket should be autoassigned within them"*
+- **Intent**: Restrict automatic ticket assignment to agents whose availability status is `online`.
+- **Key Modules Affected**:
+  - Database: [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js), [`db-scripts.sql`](file:///Users/madhumita/ticketing-system/db-scripts.sql)
+  - Backend: [`server/src/routes/agents.js`](file:///Users/madhumita/ticketing-system/server/src/routes/agents.js), [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Frontend: [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`client/src/App.jsx`](file:///Users/madhumita/ticketing-platform/client/src/App.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-platform/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-platform/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Added an `status` column to the `agents` table with `online`/`offline` values and an `online` default.
+  - Added database migration logic for existing SQLite installations.
+  - Updated least-loaded agent selection to filter exclusively for `status = 'online'`.
+  - Added `PATCH /api/agents/:id/status` for availability changes.
+  - Added the online/offline control to the Agent workspace profile banner.
+  - Set an agent online after agent login and offline after logout.
+  - Updated bulk and specific auto-assignment behavior to use only online agents.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #14: In-Page Tickets Section & Modal Clearance Fix
+- **Date & Time**: `2026-11-21 14:19:10 +05:30`
+- **User Prompt**:
+  > *"opening the ticket in teh user screen makes it collide with the navbar"*
+- **Intent**: Fix visual layering and layout collision where opening a ticket's detail/conversation modal caused its header to collide with and be obscured behind the sticky top navbar.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Z-Index Layering Fix**:
+    - Increased `.modal-overlay` from `z-index: 50` to `z-index: 1000`, placing the backdrop and modal cleanly above the sticky navbar (`z-index: 100`).
+  - **Viewport Clearance & Scrolling Geometry**:
+    - Increased `.modal-overlay` padding from `1rem` to `2.5rem 1rem` to ensure consistent breathing room from the top and bottom of the viewport.
+    - Updated `.modal-content` to use `max-height: calc(100vh - 5rem)` and `margin: auto` with enhanced drop shadow.
+    - Updated `.conversation-modal-body` to `max-height: calc(100vh - 16rem)` with internal scrolling, preventing modal overflow.
+  - **Verification**:
+    - Verified clean Vite compilation (`npm --prefix client run build`) in 949ms.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #15: Universal Dropdown Chevron-Down Icon Across All Screens
+- **Date & Time**: `2026-11-21 14:27:00 +05:30`
+- **User Prompt**:
+  > *"fix the dropdown icon for everywhere on the dropdown buttons"*
+- **Intent**: Fix dropdown arrows across all `<select>` dropdown controls and select buttons across the entire application so they display consistent, modern, styled Lucide chevron-down indicators instead of default unstyled browser OS controls.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Universal Select Styling in `index.css`**:
+    - Applied `appearance: none; -webkit-appearance: none; -moz-appearance: none;` across all `select` elements.
+    - Integrated inline SVG Lucide chevron-down icon (`stroke='#64748b'`) with smooth transition to indigo (`stroke='#4f46e5'`) on `:focus`.
+    - Configured background position `right 0.75rem center`, size `14px 14px`, and `padding-right: 2.25rem !important` to eliminate text collision with the chevron.
+  - **Standardized Component Classes**:
+    - Styled `.filter-select`, `.form-group select`, and `.agent-select-dropdown` with consistent chevron-down backgrounds.
+    - Styled compact variants (`.card-agent-select`, `select.badge`, and `.filter-select.badge`) with scaled `11px 11px` chevron-down icons, `right 0.45rem center` position, and `1.6rem` padding.
+  - **Prefix & Toolbar Symmetry in `UserWebsite.jsx`**:
+    - Added `<Layers size={14} />` icon wrapper to the Priority dropdown filter in `#my-tickets-section`, matching the `<Filter size={14} />` icon on the Status filter.
+  - **Inline Padding Refinements**:
+    - Cleaned inline padding in `AdminDashboard.jsx` (table status badge select and agent select) and `AuthGate.jsx` (agent picker) to maintain right clearance for the custom dropdown chevrons.
+- **Verification**:
+  - Built client successfully with `npm --prefix client run build` in 948ms.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #16: Backend Server Restoration & Database Corruption Fix
+- **Date & Time**: `2026-11-21 14:31:40 +05:30`
+- **User Prompt**:
+  > *"Could not connect to backend API. Ensure the server is running on http://localhost:5001"*
+- **Intent**: Resolve backend server failure where the frontend could not reach `http://localhost:5001`.
+- **Key Modules Affected**:
+  - Backend: [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js), [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite)
+  - Process Management: Task `task-27` (killed), Task `task-868` (spawned)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Root Cause**:
+  - The SQLite database file [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite) and its WAL journal experienced btree corruption (`SQLITE_CORRUPT: database disk image is malformed (11)`), causing `node --watch src/index.js` to crash on startup during table row count initialization.
+- **Actions Taken**:
+  - Terminated the crashed backend task (`task-27`).
+  - Confirmed via `.dump` and `.recover` that no customer tickets were lost.
+  - Archived corrupted database artifacts into `server/corrupt_backup/`.
+  - Reinitialized fresh database instance via `initDatabase()`, automatically creating tables and seeding the 5 support agents with verified integrity (`PRAGMA integrity_check -> ok`).
+  - Launched fresh backend daemon (`npm --prefix server run dev`, task `task-868`).
+  - Confirmed backend server is active on `http://localhost:5001`.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #17: Reverted SQLite Files Resolution & WAL Checkpointing
+- **Date & Time**: `2026-11-21 14:35:21 +05:30`
+- **User Prompt**:
+  > *"i reverted some files of sqlite. fix it"*
+- **Intent**: Fix SQLite database and backend server after git revert / branch checkout operations touched SQLite files.
+- **Key Modules Affected**:
+  - Database: [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite), [`server/database.sqlite-wal`](file:///Users/madhumita/ticketing-system/server/database.sqlite-wal), [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js)
+  - Configuration: [`.gitignore`](file:///Users/madhumita/ticketing-system/.gitignore)
+  - Process Management: Task `task-868` (killed), Task `task-981` (spawned)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Root Cause**:
+  - `server/database.sqlite-wal` and `server/database.sqlite-shm` were previously tracked in git whereas `server/database.sqlite` was gitignored (`*.sqlite`).
+  - Checking out or reverting git commits replaced the active WAL journal with an out-of-sync revision, causing SQLite write-ahead log divergence.
+- **Actions Taken**:
+  - Executed `PRAGMA wal_checkpoint(TRUNCATE);` to safely flush all transactions directly into [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite) and truncate the WAL journal to 0 bytes.
+  - Executed `initDatabase()` migration check to ensure all columns (including `status` on `agents`) exist and are populated with `online`.
+  - Updated [`.gitignore`](file:///Users/madhumita/ticketing-system/.gitignore) to `*.sqlite*` and `*.db*` to protect WAL and SHM journal files from future git tracking and branch collisions.
+  - Restarted backend daemon process (`npm --prefix server run dev`, task `task-981`).
+  - Verified backend operation with database queries returning 5 agents and 10 tickets.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #18: Populate SQLite Database with 5 Agents and 12 Realistic Tickets
+- **Date & Time**: `2026-11-21 14:41:18 +05:30`
+- **User Prompt**:
+  > *"fill the sqlite db with 5 agents, 12 tickets already in the db"*
+- **Intent**: Seed the embedded SQLite database with the 5 canonical support agents and 12 comprehensive, realistic customer concern tickets with discussion threads and balanced workloads.
+- **Key Modules Affected**:
+  - Backend: [`server/src/seed.js`](file:///Users/madhumita/ticketing-system/server/src/seed.js), [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js)
+  - Scripts: [`server/package.json`](file:///Users/madhumita/ticketing-system/server/package.json), [`package.json`](file:///Users/madhumita/ticketing-system/package.json)
+  - Database: [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Created Standalone Seeder ([server/src/seed.js](file:///Users/madhumita/ticketing-system/server/src/seed.js))**:
+    - Created `seedFullDatabase()` which sets up the 5 canonical agents (Sarah Chen, Alex Kumar, David Miller, Elena Rostova, Maya Lin) and 12 realistic tickets covering all categories (`Billing`, `Technical`, `Complaint`, `Product`, `General`), statuses (`open`, `in_progress`, `resolved`, `closed`), and priorities (`urgent`, `high`, `medium`, `low`).
+    - Seeded realistic back-and-forth customer replies and agent support responses across 27 discussion comments.
+    - Balanced workloads across all 5 agents (Sarah: 2 active, Elena: 2 active, Alex: 1 active, David: 1 active, Maya: 1 active).
+  - **Added `npm run db:seed` Scripts**:
+    - Added `"db:seed": "node src/seed.js"` to `server/package.json` and `"db:seed": "npm --prefix server run db:seed"` to root `package.json`.
+    - Updated `server/src/db.js` so that `seedDatabase()` delegates to `seedFullDatabase()`.
+  - **Execution & Verification**:
+    - Executed `npm run db:seed`.
+    - Verified database row counts (`PRAGMA integrity_check -> ok`, 5 agents, 12 tickets, 27 comments).
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #19: Remove Character Count Validation from Concern Subject & Description
+- **Date & Time**: `2026-11-21 14:47:35 +05:30`
+- **User Prompt**:
+  > *"Describe Your Concern in Detail, Concern Subject - should not have the validation of character count - it just shouldnt be empty"*
+- **Intent**: Remove minimum and maximum character length constraints from both "Concern Subject" and "Describe Your Concern in Detail", requiring only that they are non-empty.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Backend: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Frontend ([UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Simplified `validateField('subject')` to verify only non-empty input (`!value || !value.trim()`), removing 5-character minimum and 150-character maximum limits.
+    - Simplified `validateField('description')` to verify only non-empty input (`!value || !value.trim()`), removing 15-character minimum and 3000-character maximum limits.
+    - Removed character counter badges (`{formData.subject.length}/150` and `{formData.description.length}/3000`).
+    - Cleaned placeholders and removed `maxLength` properties so users can input any length subject and description without restriction.
+  - **Backend ([server/src/routes/tickets.js](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js))**:
+    - Updated `POST /api/tickets` to enforce only non-empty checks for `ticketTitle` and `ticketDesc`, removing the 5-150 and 15-3000 character boundaries.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #20: Fix Ticket Modal Collision with Navbar on dev-shivani
+- **Date & Time**: `2026-11-21 14:52:29 +05:30`
+- **User Prompt**:
+  > *"opening the ticket in teh user screen makes it collide with the navbar"*
+- **Intent**: Fix visual layering collision on the `dev-shivani` branch where opening a ticket's detail/conversation modal caused the sticky white navbar to float on top of and collide with the modal header.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Z-Index Layering Fix**:
+    - Increased `.modal-overlay` to `z-index: 2000 !important;` (cleanly above `.website-navbar` at `z-index: 100`).
+    - Configured backdrop with `background-color: rgba(15, 23, 42, 0.65);` and `backdrop-filter: blur(4px);`.
+  - **Viewport Clearance & Scrolling Geometry**:
+    - Set `.modal-overlay` padding to `2.5rem 1rem;` with `overflow-y: auto;`.
+    - Set `.modal-content` and `.modal-large` to `max-height: calc(100vh - 5rem);` with `margin: auto;` and elevated drop shadow.
+    - Set `.conversation-modal-body` to `max-height: calc(100vh - 16rem);` with internal scrolling.
+    - Set `.modal-header` to `position: sticky; top: 0; background: white; z-index: 10; flex-shrink: 0;` ensuring headers and close controls never get pushed outside the visible screen.
+  - **Restored Custom Dropdown Chevrons**:
+    - Re-applied modern Lucide chevron-down vector styling (`appearance: none`) across `select`, `.filter-select`, `.form-group select`, `.agent-select-dropdown`, and `.card-agent-select`.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) in 1.01s with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #22: Agent Online/Offline Visibility & Controls in Admin UI
+- **Date & Time**: `2026-11-21 15:02:30 +05:30`
+- **User Prompt**:
+  > *"there is a funcionality of agent to go online offline. the admin should be able to see which agents are online/offline in the admin UI"*
+- **Intent**: Provide complete visual visibility and control over agent online/offline availability throughout the Admin Dashboard.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/components/FilterBar.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/FilterBar.jsx), [`client/src/components/TicketModal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx), [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Support Agents Roster Bar ([AdminDashboard.jsx](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx))**:
+    - Restored and enhanced the roster bar with live availability summary (`Support Agents (X Online / Y Total)`).
+    - Added green/gray status indicator dots (`.status-indicator-dot.online`, `.status-indicator-dot.offline`) on each specialist's avatar.
+    - Added clickable availability badges (`.badge-online` / `.badge-offline`) allowing the admin to inspect and toggle an agent's status directly via `PATCH /api/agents/:id/status`.
+  - **Filter Bar ([FilterBar.jsx](file:///Users/madhumita/ticketing-system/client/src/components/FilterBar.jsx))**:
+    - Appended `[Online]` and `[Offline]` tags to all agent dropdown options.
+  - **Table View Inline Assignment ([AdminDashboard.jsx](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx))**:
+    - Appended `[Online]` and `[Offline]` tags to inline agent assignment options.
+  - **Ticket Detail Modal ([TicketModal.jsx](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx))**:
+    - Appended `[Online]` and `[Offline]` tags to assignment dropdown options.
+  - **Styling ([index.css](file:///Users/madhumita/ticketing-system/client/src/index.css))**:
+    - Added CSS rules for `.status-indicator-dot`, `.agent-status-badge`, `.status-dot-mini`, and `.roster-pill-offline`.
+  - **Verification**:
+    - Verified Vite client compilation (`npm --prefix client run build`) in 967ms with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #23: Resolve Merge Conflicts & Complete Interactive Git Rebase on dev-shivani
+- **Date & Time**: `2026-11-21 15:17:00 +05:30`
+- **User Prompt**:
+  > *"fix the merge conflicts and get out of rebase"*
+- **Intent**: Resolve all unmerged file conflicts blocking the interactive git rebase on branch `dev-shivani` (onto `6853056`), complete the rebase cleanly, and verify build and database integrity.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css)
+  - Database: [`server/database.sqlite-wal`](file:///Users/madhumita/ticketing-system/server/database.sqlite-wal)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Root Cause & Conflicts Resolved**:
+  - Interactive rebase was picking commit `b706b42` ("show online/offline status") onto commit `6853056` ("seeded data").
+  - In `client/src/components/AdminDashboard.jsx`: Conflicted between commented roster bar delimiter and new live support agent availability summary + toggle controls. Resolved by integrating live agent online/offline summary (`Support Agents (X Online / Y Total)`), avatar status indicators (`.status-indicator-dot`), interactive online/offline toggle badges (`.agent-status-badge`), and table view `[Online]`/`[Offline]` options.
+  - In `client/src/index.css`: Conflicted on modal overlay z-index and dimensions. Resolved by maintaining `z-index: 2000 !important;` (preventing navbar collision) with `max-height: calc(100vh - 5rem);` and `conversation-modal-body` scroll limits.
+  - In `server/database.sqlite-wal`: Binary conflict resolved using `--ours` to prevent SQLite WAL journal divergence.
+- **Actions Taken**:
+  - Resolved all conflict markers across [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx) and [`client/src/index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css).
+  - Selected `--ours` on `server/database.sqlite-wal` and staged all resolved paths.
+  - Executed `GIT_EDITOR=true git rebase --continue` to successfully complete the interactive rebase.
+- **Verification & Outcome**:
+  - Verified `git status`: Working tree clean on branch `dev-shivani`.
+  - Verified Vite compilation (`npm --prefix client run build`) in 1.04s with zero errors.
+  - Verified backend server (port 5001) and frontend dev server (port 5173) are actively running.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #24: Resolve Merge Conflicts with origin/first_branch (SLA Integration)
+- **Date & Time**: `2026-11-21 15:27:00 +05:30`
+- **User Prompt**:
+  > *"fix the merge conflicts without losing any functionality"*
+- **Intent**: Resolve all unmerged file conflicts between `demo-prep` and `origin/first_branch` (`f05323a`, "sla added") without losing any existing functionality (agent availability, validation, modal layering, SLA due dates, list/card view modes).
+- **Key Modules Affected**:
+  - Frontend: [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`client/src/components/AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`client/src/utils.js`](file:///Users/madhumita/ticketing-system/client/src/utils.js)
+  - Backend: [`server/src/db.js`](file:///Users/madhumita/ticketing-system/server/src/db.js), [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js), [`server/src/sla.js`](file:///Users/madhumita/ticketing-system/server/src/sla.js)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - **Database Migration & Seeding ([server/src/db.js](file:///Users/madhumita/ticketing-system/server/src/db.js))**:
+    - Merged `calculateDueAt` SLA calculations alongside `seedFullDatabase` to compute and populate SLA due dates and urgent timestamps across all seeded and runtime tickets.
+  - **User Portal View Modes & Navigation ([client/src/components/UserWebsite.jsx](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx))**:
+    - Integrated View Mode Toggle (`List` vs `Cards`) for the in-page tracked tickets section.
+    - Preserved top navbar "Track All My Tickets" button with smooth scroll navigation.
+    - Retained custom Lucide `Layers` icon on Priority filter and visible `#{t.id}` ticket tags.
+  - **Admin Dashboard & Styling**:
+    - Confirmed preservation of Support Agents Roster Bar (`X Online / Y Total`), status indicator dots, and online/offline toggle badges alongside new SLA due date countdown badges.
+- **Verification & Outcome**:
+  - All 4 conflicted files resolved with zero conflict markers.
+  - Verified Vite compilation (`npm --prefix client run build`) in 1.02s with zero errors.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #25: Codebase Audit: CustomerPortal Component Usage Verification
+- **Date & Time**: `2026-11-21 15:40:00 +05:30`
+- **User Prompt**:
+  > *"is CustomerPortal component being used?"*
+- **Intent**: Audit the frontend codebase to determine if `CustomerPortal.jsx` is currently imported or used anywhere.
+- **Key Modules Affected**:
+  - Frontend: [`client/src/App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`client/src/components/CustomerPortal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/CustomerPortal.jsx), [`client/src/components/UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx)
+  - Documentation: [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Actions Taken**:
+  - Grepped the entire repository and confirmed [`CustomerPortal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/CustomerPortal.jsx) is not imported in [`App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx) or any other component.
+  - Verified that [`UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx) is the active component handling the customer/public experience on `/`.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #26: Frontend Dead Code Audit: Unused Components Identification
+- **Date & Time**: `2026-11-21 15:46:30 +05:30`
+- **User Prompt**:
+  > *"are there any files in frintend that are not being used?"*
+- **Intent**: Comprehensive scan of all frontend directories (`client/src`, `client/src/components`, `client/public`) to detect unused files and dead code.
+- **Key Modules Audited**:
+  - Unused: [`client/src/components/CustomerPortal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/CustomerPortal.jsx), [`client/src/components/PortalNav.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/PortalNav.jsx)
+  - Active: [`App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx), [`main.jsx`](file:///Users/madhumita/ticketing-system/client/src/main.jsx), [`utils.js`](file:///Users/madhumita/ticketing-system/client/src/utils.js), [`index.css`](file:///Users/madhumita/ticketing-system/client/src/index.css), [`UserWebsite.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/UserWebsite.jsx), [`AdminDashboard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AdminDashboard.jsx), [`AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx), [`AuthGate.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AuthGate.jsx), [`Header.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/Header.jsx), [`StatCard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/StatCard.jsx), [`FilterBar.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/FilterBar.jsx), [`TicketCard.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketCard.jsx), [`TicketModal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx)
+  - Documentation: [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
+- **Findings**:
+  - Found exactly 2 unused files: `CustomerPortal.jsx` and `PortalNav.jsx`. Both originate from the initial multi-tab prototype prior to path-based routing and `UserWebsite.jsx`.
+- **Status**: ✅ Completed successfully.
+
+---
+
+### Prompt #27: Architecture Inquiry: Status Change Lifecycle Comment Mechanism
+- **Date & Time**: `2026-11-21 16:12:00 +05:30`
+- **User Prompt**:
+  > *"the status of the ticket changed - how is a comment added for it?"*
+- **Intent**: Explain the end-to-end mechanism of how an audit comment is generated and stored in SQLite when a ticket's status changes.
+- **Key Modules Explained**:
+  - Backend Endpoint: [`server/src/routes/tickets.js`](file:///Users/madhumita/ticketing-system/server/src/routes/tickets.js) (`PATCH /api/tickets/:id`)
+  - Database Table: `comments` in [`server/database.sqlite`](file:///Users/madhumita/ticketing-system/server/database.sqlite)
+  - Frontend Triggers: [`App.jsx`](file:///Users/madhumita/ticketing-system/client/src/App.jsx) (`handleStatusChange`), [`AgentScreen.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/AgentScreen.jsx) (`handleUpdateStatus`), [`TicketModal.jsx`](file:///Users/madhumita/ticketing-system/client/src/components/TicketModal.jsx)
+  - Documentation: [`KNOWLEDGE.md`](file:///Users/madhumita/ticketing-system/KNOWLEDGE.md), [`PROMPT_LOG.md`](file:///Users/madhumita/ticketing-system/PROMPT_LOG.md)
 - **Status**: ✅ Completed successfully.
 
 ---

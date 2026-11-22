@@ -29,6 +29,7 @@ CREATE TABLE agents (
     role TEXT DEFAULT 'Support Specialist',
     department TEXT DEFAULT 'Customer Support',
     avatar_color TEXT DEFAULT '#4f46e5',
+    status TEXT CHECK(status IN ('online', 'offline')) DEFAULT 'online',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
